@@ -175,6 +175,7 @@ AC_CONFIG_FILES([Makefile
                  email_reporter/Makefile
                  flowcounter/Makefile
                  flow_meter/Makefile
+                 ip_activity/Makefile
                  json_dump/Makefile
                  json_replay/Makefile
                  logger/Makefile

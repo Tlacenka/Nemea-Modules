@@ -4,6 +4,7 @@ SUBDIRS=anonymizer \
 debug_sender \
 email_reporter \
 flowcounter \
+ip_activity \
 json_dump \
 json_replay \
 logger \
