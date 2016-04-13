@@ -83,6 +83,11 @@ trap_module_info_t *module_info = NULL;
 #define IPV4 0
 #define IPv6 1
 
+#define IPV4_BYTES 4
+#define IPV6_BYTES 16
+#define IPV4_BITS 32
+#define IPV6_BITS 128
+
 #define IN 0
 #define OUT 1
 #define INOUT 2
@@ -125,7 +130,10 @@ std::string operator*(const std::string& str, unsigned int n)
    }
    return result.str();
 }
-std::string operator*(unsigned int n, const std::string& str) { return str * n; }
+std::string operator*(unsigned int n, const std::string& str)
+{
+   return str * n;
+}
 
 /**
  * \brief Converts address based on chosen granularity
@@ -136,7 +144,7 @@ void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
    std::vector<uint8_t> bytes = addr->get_bytes();
    int version = addr->get_version();
    // How many zeros at the end
-   int zeros = (version == 4) ? (32 - granularity) : (128 - granularity);
+   int zeros = (version == 4) ? (IPV4_BITS - granularity) : (IPV6_BITS - granularity);
 
    if (zeros == 0) {
       return;
@@ -153,9 +161,8 @@ void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
          break;
       } else {
          // Convert needed part
-         for (uint8_t z = 1; (zeros > 0) && (z < 128); z*= 2) {
-            bytes[i] &= z;
-            zeros--;
+         for (int b = 0; (zeros > 0) && (b < 8) ; b++, zeros--) {
+            bytes[i] &= ~(1 << b);
          }
       }
    }
@@ -192,31 +199,30 @@ int int_power(int base, int exp) {
 uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granularity)
 {
    // Check IP validity, same version
-   if ((addr1.get_version() != addr2.get_version()) || (addr1.get_version() == 0)) {
+   if ((addr1.get_version() != addr2.get_version()) ||
+       (addr1.get_version() == 0)) {
       return 0;
    }
 
-   int version = addr1.get_version();
-   int bytes = (version == 4) ? 4 : 16;
+   int size = addr1.get_bytes().size();
 
    // Create bytes representation for better handling
    std::vector<uint8_t> addr1_bytes = addr1.get_bytes();
    std::vector<uint8_t> addr2_bytes = addr2.get_bytes();
 
-   if ((addr1_bytes.size() == 0) || (addr2_bytes.size() == 0)) {
+   if ((addr1_bytes.size() == 0) || (addr2_bytes.size() == 0) ||
+       (addr1_bytes.size() != addr2_bytes.size())) {
       return 0;
    }
 
+   // Substraction result
    std::vector<uint8_t> substr_bytes;
-   substr_bytes.resize(addr1_bytes.size());
-
-   std::cout << "hello dolly" << std::endl;
+   substr_bytes.resize(size);
+   uint8_t borrow = 0;
 
    // Substract IPs (base 256) > each byte = "digit" of the result
-   char borrow = 0;
-
    // Go from right to left
-   for (unsigned int i = bytes-1; i >= 0; i--) {
+   for (int i = size-1; i >= 0; i--) {
       // Normal substraction, no borrow
       if (addr2_bytes[i] >= (addr1_bytes[i] + borrow)) {
          substr_bytes[i] = addr2_bytes[i] - addr1_bytes[i] - borrow;
@@ -228,8 +234,6 @@ uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granular
       }
    }
 
-   std::cout << "hello " << substr_bytes[0] << "." << substr_bytes[1] << "." << substr_bytes[2] << "." << substr_bytes[3] << std::endl;
-
    // Result in case of  IPv4 (Bk = Byte on index k): 
    // B0 * 2^24 + B1 * 2 ^ 16 + B2 * 2^8 + B3
    // Both addresses were written in said granularity
@@ -238,36 +242,32 @@ uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granular
 
    // TODO: Check if it is greater than 2^64 (uint64_max)
 
-   /*
-   if ((version == 6) && (granularity <= 64)) {
-      ...
-   }
-   */
-
    uint64_t result = 0;
    int exp;
    // At first, go after octets fron left to right and add:
    // x * 2 ^ ((32 - (i+1)*8) - (32 - granularity))
    // x * 2 ^ (granularity - (i+1)*8)
-   for (int i = 0;  i < bytes; i++) {
+
+   // Go through bytes
+   for (int i = 0;  i < size; i++) {
       exp = (i + 1) * 8;
+
+      // Last bit of current byte does not exceed granularity
       if (exp < granularity) {
          result += substr_bytes[i] * int_power(2, granularity - exp);
       } else if (exp == granularity) {
-         // 2^0, granularity is divisible by 8
+         // Last bit is at subnet limit
          result += substr_bytes[i];
          break;
       } else {
-         // Take the remainder to granularity limit, add it up
-
+         // Take the remainder to subnet limit, add it up
          // Convert octet to binary
          std::string tmp = std::bitset<8>(substr_bytes[i]).to_string();
 
          // Keep only part before granularity line
-         tmp = tmp.substr(0, exp - granularity);
+         tmp = tmp.substr(0, 8 - (exp - granularity));
 
          // Add it to the result
-         tmp = std::strtol(tmp.c_str(), NULL, 2);
          result += std::strtol(tmp.c_str(), NULL, 2);
          break;
       }
@@ -290,7 +290,6 @@ int main(int argc, char **argv)
    TRAP_REGISTER_DEFAULT_SIGNAL_HANDLER();
 
    // Create template
-   //ur_template_t *tmplt = ur_create_input_template(0, "DST_IP,SRC_IP,TIME_FIRST,TIME_LAST,PACKETS,SRC_PORT,DST_PORT", NULL);
    ur_template_t *tmplt = ur_create_input_template(0, "DST_IP,SRC_IP", NULL);
 
    if (tmplt == NULL) {
@@ -298,7 +297,7 @@ int main(int argc, char **argv)
       return -1;
    }
 
-   // Declare progress structure, pointer to this struct, initialize progress limit
+   // Declare progress structure
    NMCM_PROGRESS_DEF;
 
    // Initialization of default values
@@ -363,8 +362,8 @@ int main(int argc, char **argv)
    }
 
    // Check netmask
-   if (((ip_version == 4) && (granularity > 32)) ||
-       ((ip_version == 6) && (granularity > 128))) {
+   if (((ip_version == 4) && (granularity > IPV4_BITS)) ||
+       ((ip_version == 6) && (granularity > IPV6_BITS))) {
       fprintf(stderr, "Error: Granularity - IPv%d netmask value cannot be greater than %d.\n",
               ip_version, ((ip_version == 4) ? 32 : 128));
       return 1;
@@ -384,16 +383,21 @@ int main(int argc, char **argv)
    } else {
 
       // Check if IPs are valid
-      if (((ip_version == 4) && (!range[FIRST_ADDR].is_ipv4() || !range[LAST_ADDR].is_ipv4())) ||
-          ((ip_version == 6) && (!range[FIRST_ADDR].is_ipv6() || !range[LAST_ADDR].is_ipv6()))) {
+      if (((ip_version == 4) && (!range[FIRST_ADDR].is_ipv4() ||
+                                 !range[LAST_ADDR].is_ipv4())) ||
+          ((ip_version == 6) && (!range[FIRST_ADDR].is_ipv6() ||
+                                 !range[LAST_ADDR].is_ipv6()))) {
 
-         fprintf(stderr, "Error: IPv%ds inserted as range are not valid.", ip_version);
+         fprintf(stderr, "Error: IPv%ds inserted as range are not valid.",
+                 ip_version);
          return 1;
       }
 
       // Convert range to granularity
       convert_to_granularity(&range[FIRST_ADDR], granularity);
       convert_to_granularity(&range[LAST_ADDR], granularity);
+
+      std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
 
       if (range[FIRST_ADDR] == range[LAST_ADDR]) {
          fprintf(stderr, "Error: Range is smaller than one subnet /%d",
@@ -428,7 +432,7 @@ int main(int argc, char **argv)
    config_file[filename]["addresses"]["max"] = range[LAST_ADDR].toString();
 
    config_file[filename]["time"]["granularity"] = interval;
-   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct); // ?
+   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
    config_file[filename]["time"]["beginning"] = str_time;
 
     std::ofstream fout("config.yaml");
@@ -437,24 +441,24 @@ int main(int argc, char **argv)
    // Create bitmap files
    std::ostringstream name;
 
-   name << filename << "_i.bmp";
-   bitmaps[IN].open(name.str().c_str(), std::ofstream::out | std::ofstream::app);
+   name << filename << "_i.bmap";
+   bitmaps[IN].open(name.str().c_str(),
+                    std::ofstream::out | std::ofstream::app);
    name.str("");
 
-   name << filename << "_o.bmp";
-   bitmaps[OUT].open(name.str().c_str(), std::ofstream::out | std::ofstream::app);
+   name << filename << "_o.bmap";
+   bitmaps[OUT].open(name.str().c_str(),
+                     std::ofstream::out | std::ofstream::app);
    name.str("");
 
-   name << filename << "_io.bmp";
-   bitmaps[INOUT].open(name.str().c_str(), std::ofstream::out | std::ofstream::app);
+   name << filename << "_io.bmap";
+   bitmaps[INOUT].open(name.str().c_str(),
+                       std::ofstream::out | std::ofstream::app);
    name.str("");
 
    // Get size of bit vector
-   int vector_size = calculate_vector_size(range[FIRST_ADDR], range[LAST_ADDR], granularity);
-
-   std::cout << "vector size: " << vector_size << std::endl;
-
-   return 0;
+   int vector_size = calculate_vector_size(range[FIRST_ADDR],
+                                           range[LAST_ADDR], granularity);
 
    /** Main loop */
    while (!stop) {
@@ -462,7 +466,8 @@ int main(int argc, char **argv)
       uint16_t rec_size;
       IPaddr_cpp ip(false);
 
-      //std::bitset<vector_size> bits; // initialized with zeros
+      std::vector<bool> bits; // initialized with zeros
+      bits.resize(vector_size);
 
       // Receive data from input interface
       ret = TRAP_RECEIVE(0, rec, rec_size, tmplt);
