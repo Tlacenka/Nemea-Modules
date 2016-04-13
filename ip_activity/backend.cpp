@@ -57,6 +57,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <utility> 
 
@@ -110,48 +111,57 @@ TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
 /** TODO alarm signal */
 
 /**
- * \brief Checks if address is written with 0 bits after chosen granularity
+ * \brief Multiplication of characters in string
+ * \param [in] n Multiplicator.
+ * \param [in] str String to be multiplied
+ * \return Multiplied string
+ */
+/*http://stackoverflow.com/questions/11843226/multiplying-a-string-by-an-int-in-c*/
+std::string operator*(const std::string& str, unsigned int n)
+{
+   std::stringstream result;
+   while (n--) {
+      result << str;
+   }
+   return result.str();
+}
+std::string operator*(unsigned int n, const std::string& str) { return str * n; }
+
+/**
+ * \brief Converts address based on chosen granularity
  * \param [in] addr IP address to be checked.
  * \return True upon success.
  */
-bool is_in_granularity (IPaddr_cpp addr, int granularity) {
-   std::vector<uint8_t> bytes = addr.get_bytes();
-   std::string tmp;
-
-   int version = addr.get_version();
+void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
+   std::vector<uint8_t> bytes = addr->get_bytes();
+   int version = addr->get_version();
    // How many zeros at the end
    int zeros = (version == 4) ? (32 - granularity) : (128 - granularity);
 
    if (zeros == 0) {
-      return true;
+      return;
    }
 
    // Goes from right to left
    for (int i = ((version == 4) ? 3 : 15); i >= 0; i--) {
 
-      // More bytes to go, the byte must equal 0
+      // More bytes to go, the byte equals 0
       if (zeros >= 8) {
-         if (bytes[i] != 0) {
-            return false;
-         }
+         bytes[i] = 0;
          zeros -= 8;
-
-         if (zeros == 0) {
-            return true;
-         }
+      } else if (zeros == 0) { // done
+         break;
       } else {
-         // Convert to binary
-         tmp = std::bitset<8>(bytes[i]).to_string();
-
-         // Keep only part that needs to contain zeros
-         tmp = tmp.substr(tmp.length()-zeros);
-
-         // Return whether it does
-         return (tmp.find("1") == std::string::npos);
+         // Convert needed part
+         for (uint8_t z = 1; (zeros > 0) && (z < 128); z*= 2) {
+            bytes[i] &= z;
+            zeros--;
+         }
       }
    }
 
-   return false;
+   addr->set_bytes(bytes, true);
+   return;
 }
 
 /**
@@ -200,6 +210,8 @@ uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granular
    std::vector<uint8_t> substr_bytes;
    substr_bytes.resize(addr1_bytes.size());
 
+   std::cout << "hello dolly" << std::endl;
+
    // Substract IPs (base 256) > each byte = "digit" of the result
    char borrow = 0;
 
@@ -215,6 +227,8 @@ uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granular
          borrow = 1;
       }
    }
+
+   std::cout << "hello " << substr_bytes[0] << "." << substr_bytes[1] << "." << substr_bytes[2] << "." << substr_bytes[3] << std::endl;
 
    // Result in case of  IPv4 (Bk = Byte on index k): 
    // B0 * 2^24 + B1 * 2 ^ 16 + B2 * 2^8 + B3
@@ -253,13 +267,16 @@ uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granular
          tmp = tmp.substr(0, exp - granularity);
 
          // Add it to the result
+         tmp = std::strtol(tmp.c_str(), NULL, 2);
          result += std::strtol(tmp.c_str(), NULL, 2);
+         break;
       }
    }
 
    return result;
 }
 
+/** Main function */
 int main(int argc, char **argv)
 {
    int ret;
@@ -293,11 +310,10 @@ int main(int argc, char **argv)
    bool rflag = false;
    std::string filename = "bitmap";
 
-   // Parse Arguments
+   /** Parse Arguments */
    char opt;
    size_t index;
    std::string delim = ",", tmp_range;
-   int i;
 
    while ((opt = TRAP_GETOPT(argc, argv, module_getopt_string, long_options)) != -1) {
       switch (opt) {
@@ -319,15 +335,17 @@ int main(int argc, char **argv)
             break;
          case 'r':
             tmp_range.assign(optarg);
-            // Convert all IPs to ip_addr_t
-            for (i = 0; ((index = tmp_range.find(delim)) != std::string::npos) && (i < 2); i++) {
-               range[i].fromString(tmp_range.substr(0, index));
-               tmp_range.erase(0, index + delim.length());
-            }
-            if (i != 2) {
-               fprintf(stderr, "Error: IP range - bad format.\n");
+            index = tmp_range.find(delim);
+
+            if (index == std::string::npos) {
                return 1;
             }
+
+            // Convert all IPs to ip_addr_t
+            range[FIRST_ADDR].fromString(tmp_range.substr(0, index));
+            tmp_range.erase(0, index + delim.length());
+            range[LAST_ADDR].fromString(tmp_range);
+
             rflag = true;
             break;
          case 'f':
@@ -352,15 +370,33 @@ int main(int argc, char **argv)
       return 1;
    }
 
+   // Create mask
+   IPaddr_cpp mask;
+   std::string tmp_ip = (ip_version == 4) ? "255.255.255.255" :
+                        "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+   mask.fromString(tmp_ip);
+   convert_to_granularity(&mask, granularity);
+
    // If no range entered, used the entire range at /8 by default
    if (!rflag) {
       range[FIRST_ADDR].fromString("0.0.0.0");
       range[LAST_ADDR].fromString("255.0.0.0");
    } else {
-      // Check if addresses correspond granularity
-      if (!is_in_granularity(range[FIRST_ADDR], granularity) ||
-          !is_in_granularity(range[LAST_ADDR], granularity)) {
-         fprintf(stderr, "Error: Entered IP addresses do not correspond granularity /%d",
+
+      // Check if IPs are valid
+      if (((ip_version == 4) && (!range[FIRST_ADDR].is_ipv4() || !range[LAST_ADDR].is_ipv4())) ||
+          ((ip_version == 6) && (!range[FIRST_ADDR].is_ipv6() || !range[LAST_ADDR].is_ipv6()))) {
+
+         fprintf(stderr, "Error: IPv%ds inserted as range are not valid.", ip_version);
+         return 1;
+      }
+
+      // Convert range to granularity
+      convert_to_granularity(&range[FIRST_ADDR], granularity);
+      convert_to_granularity(&range[LAST_ADDR], granularity);
+
+      if (range[FIRST_ADDR] == range[LAST_ADDR]) {
+         fprintf(stderr, "Error: Range is smaller than one subnet /%d",
                granularity);
          return 1;
       }
@@ -371,7 +407,8 @@ int main(int argc, char **argv)
    struct tm* time_struct = localtime(&start_time);
    char str_time[20];
 
-   // Create/open YAML configuration file
+
+   /** Create/open YAML configuration file  and bitmaps */
    FILE *fp = fopen("config.yaml", "a+");
    if (!fp) {
       fprintf(stderr, "Error: File could not be opened/created.\n");
@@ -413,9 +450,13 @@ int main(int argc, char **argv)
    name.str("");
 
    // Get size of bit vector
-   const int vector_size = calculate_vector_size(range[FIRST_ADDR], range[LAST_ADDR], granularity);
+   int vector_size = calculate_vector_size(range[FIRST_ADDR], range[LAST_ADDR], granularity);
 
-   /* Main loop */
+   std::cout << "vector size: " << vector_size << std::endl;
+
+   return 0;
+
+   /** Main loop */
    while (!stop) {
       const void *rec;
       uint16_t rec_size;
@@ -435,7 +476,7 @@ int main(int argc, char **argv)
       // Check if IP is in range
       if ((ip >= range[FIRST_ADDR]) && (ip <= range[LAST_ADDR])) {
          // Determine version
-         if (ip.ip_isv4()) {
+         if (ip.is_ipv4()) {
             // 0000:0000:0000:0000:<IPv4>:ffff:ffff - in 9th-12th byte
             // stored in ip.data->ui32[2]
          } else {
