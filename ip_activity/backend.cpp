@@ -45,24 +45,28 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <signal.h>
 #include <getopt.h>
-#include <time.h>
 #include <inttypes.h>
+#include <math.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
+#include <bitset>
+#include <ctime>
 #include <fstream>
 #include <iostream>
-#include <ctime>
 #include <string>
+#include <utility> 
+
+#include "yaml-cpp/yaml.h"
 
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
 #include <nemea-common.h>
 #include <unirec/ipaddr_cpp.h>
 #include "fields.h"
-
-#include "yaml-cpp/yaml.h"
 
 UR_FIELDS (
    ipaddr DST_IP,
@@ -92,7 +96,7 @@ trap_module_info_t *module_info = NULL;
    PARAM('V', "ip_version", "IP version (4 or 6, 4 by default)", no_argument, "none") \
    PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
-   PARAM('r', "range", "Range of processed IP addresses (First address,Last address), entire IP space by default.", required_argument, "string") \
+   PARAM('r', "range", "Range of processed IP addresses that must correspond chosen granularity (First address,Last address), entire IP space by default.", required_argument, "string") \
    PARAM('f', "filename", "Name of bitmap files.", required_argument, "string")
 
 static int stop = 0;
@@ -104,6 +108,157 @@ NMCM_PROGRESS_DECL;
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
 
 /** TODO alarm signal */
+
+/**
+ * \brief Checks if address is written with 0 bits after chosen granularity
+ * \param [in] addr IP address to be checked.
+ * \return True upon success.
+ */
+bool is_in_granularity (IPaddr_cpp addr, int granularity) {
+   std::vector<uint8_t> bytes = addr.get_bytes();
+   std::string tmp;
+
+   int version = addr.get_version();
+   // How many zeros at the end
+   int zeros = (version == 4) ? (32 - granularity) : (128 - granularity);
+
+   if (zeros == 0) {
+      return true;
+   }
+
+   // Goes from right to left
+   for (int i = ((version == 4) ? 3 : 15); i >= 0; i--) {
+
+      // More bytes to go, the byte must equal 0
+      if (zeros >= 8) {
+         if (bytes[i] != 0) {
+            return false;
+         }
+         zeros -= 8;
+
+         if (zeros == 0) {
+            return true;
+         }
+      } else {
+         // Convert to binary
+         tmp = std::bitset<8>(bytes[i]).to_string();
+
+         // Keep only part that needs to contain zeros
+         tmp = tmp.substr(tmp.length()-zeros);
+
+         // Return whether it does
+         return (tmp.find("1") == std::string::npos);
+      }
+   }
+
+   return false;
+}
+
+/**
+ *  \brief Power function for integers.
+ *  \param [in] base, exp (exponent)
+ *  \return Result of base ^ exp
+ */
+ /* http://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int */
+int int_power(int base, int exp) {
+   int result = 1;
+   while (exp) {
+      if (exp & 1) {
+         result *= base;
+      }
+      exp >>= 1;
+      base *= base;
+   }
+   return result;
+}
+
+/**
+ * \brief Return size of address space between two addresses in set granularity
+ * \param [in] addr1, addr2 start and end of considered range
+ * \param [in] granularity  granularity of addresses inside said range.
+ * \return Size of bit vector
+ */
+ 
+uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granularity)
+{
+   // Check IP validity, same version
+   if ((addr1.get_version() != addr2.get_version()) || (addr1.get_version() == 0)) {
+      return 0;
+   }
+
+   int version = addr1.get_version();
+   int bytes = (version == 4) ? 4 : 16;
+
+   // Create bytes representation for better handling
+   std::vector<uint8_t> addr1_bytes = addr1.get_bytes();
+   std::vector<uint8_t> addr2_bytes = addr2.get_bytes();
+
+   if ((addr1_bytes.size() == 0) || (addr2_bytes.size() == 0)) {
+      return 0;
+   }
+
+   std::vector<uint8_t> substr_bytes;
+   substr_bytes.resize(addr1_bytes.size());
+
+   // Substract IPs (base 256) > each byte = "digit" of the result
+   char borrow = 0;
+
+   // Go from right to left
+   for (unsigned int i = bytes-1; i >= 0; i--) {
+      // Normal substraction, no borrow
+      if (addr2_bytes[i] >= (addr1_bytes[i] + borrow)) {
+         substr_bytes[i] = addr2_bytes[i] - addr1_bytes[i] - borrow;
+         borrow = 0;
+      } else {
+         // Add radix to remain positive result, add borrow
+         substr_bytes[i] = (addr2_bytes[i] + 256) - addr1_bytes[i] - borrow;
+         borrow = 1;
+      }
+   }
+
+   // Result in case of  IPv4 (Bk = Byte on index k): 
+   // B0 * 2^24 + B1 * 2 ^ 16 + B2 * 2^8 + B3
+   // Both addresses were written in said granularity
+   // - so it didn't influence the substraction 
+   // - and it will cause a remainder 0 when divided by it
+
+   // TODO: Check if it is greater than 2^64 (uint64_max)
+
+   /*
+   if ((version == 6) && (granularity <= 64)) {
+      ...
+   }
+   */
+
+   uint64_t result = 0;
+   int exp;
+   // At first, go after octets fron left to right and add:
+   // x * 2 ^ ((32 - (i+1)*8) - (32 - granularity))
+   // x * 2 ^ (granularity - (i+1)*8)
+   for (int i = 0;  i < bytes; i++) {
+      exp = (i + 1) * 8;
+      if (exp < granularity) {
+         result += substr_bytes[i] * int_power(2, granularity - exp);
+      } else if (exp == granularity) {
+         // 2^0, granularity is divisible by 8
+         result += substr_bytes[i];
+         break;
+      } else {
+         // Take the remainder to granularity limit, add it up
+
+         // Convert octet to binary
+         std::string tmp = std::bitset<8>(substr_bytes[i]).to_string();
+
+         // Keep only part before granularity line
+         tmp = tmp.substr(0, exp - granularity);
+
+         // Add it to the result
+         result += std::strtol(tmp.c_str(), NULL, 2);
+      }
+   }
+
+   return result;
+}
 
 int main(int argc, char **argv)
 {
@@ -132,11 +287,10 @@ int main(int argc, char **argv)
    // Initialization of default values
    int interval = 300;
    bool print_progress = false;
-   int granularity = 32;
+   int granularity = 8;
    int ip_version = 4;
    IPaddr_cpp range[2];
    bool rflag = false;
-
    std::string filename = "bitmap";
 
    // Parse Arguments
@@ -193,15 +347,23 @@ int main(int argc, char **argv)
    // Check netmask
    if (((ip_version == 4) && (granularity > 32)) ||
        ((ip_version == 6) && (granularity > 128))) {
-      fprintf(stderr, "Error: Granularity - IPv%d netmask bigger than %d.\n",
+      fprintf(stderr, "Error: Granularity - IPv%d netmask value cannot be greater than %d.\n",
               ip_version, ((ip_version == 4) ? 32 : 128));
       return 1;
    }
 
-   // If no range entered, used the entire range by default
+   // If no range entered, used the entire range at /8 by default
    if (!rflag) {
-      range[0].fromString("0.0.0.0");
-      range[1].fromString("255.255.255.255");
+      range[FIRST_ADDR].fromString("0.0.0.0");
+      range[LAST_ADDR].fromString("255.0.0.0");
+   } else {
+      // Check if addresses correspond granularity
+      if (!is_in_granularity(range[FIRST_ADDR], granularity) ||
+          !is_in_granularity(range[LAST_ADDR], granularity)) {
+         fprintf(stderr, "Error: Entered IP addresses do not correspond granularity /%d",
+               granularity);
+         return 1;
+      }
    }
 
    // Get time
@@ -220,7 +382,7 @@ int main(int argc, char **argv)
    // Load file to YAML parser
    YAML::Node config_file = YAML::LoadFile("config.yaml");
 
-   std::fstream bitmaps[3];
+   std::ofstream bitmaps[3];
 
    // Set bitmap options for server
    config_file[filename]["addresses"]["version"] = (ip_version == 4) ? "IPv4" : "IPv6";
@@ -229,7 +391,7 @@ int main(int argc, char **argv)
    config_file[filename]["addresses"]["max"] = range[LAST_ADDR].toString();
 
    config_file[filename]["time"]["granularity"] = interval;
-   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %I:%M:%S", time_struct); // ?
+   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct); // ?
    config_file[filename]["time"]["beginning"] = str_time;
 
     std::ofstream fout("config.yaml");
@@ -239,46 +401,55 @@ int main(int argc, char **argv)
    std::ostringstream name;
 
    name << filename << "_i.bmp";
-   bitmaps[IN].open(name.str().c_str());
-   name.clear();
+   bitmaps[IN].open(name.str().c_str(), std::ofstream::out | std::ofstream::app);
+   name.str("");
 
    name << filename << "_o.bmp";
-   bitmaps[OUT].open(name.str().c_str());
-   name.clear();
+   bitmaps[OUT].open(name.str().c_str(), std::ofstream::out | std::ofstream::app);
+   name.str("");
 
    name << filename << "_io.bmp";
-   bitmaps[INOUT].open(name.str().c_str());
-   name.clear();
+   bitmaps[INOUT].open(name.str().c_str(), std::ofstream::out | std::ofstream::app);
+   name.str("");
 
-   // size of bit vector
-   // int vector_size = <number of addresses between first and last IP> / granularity;
+   // Get size of bit vector
+   const int vector_size = calculate_vector_size(range[FIRST_ADDR], range[LAST_ADDR], granularity);
 
    /* Main loop */
    while (!stop) {
       const void *rec;
       uint16_t rec_size;
       IPaddr_cpp ip(false);
-      // bit vector with size of range/granularity
+
+      //std::bitset<vector_size> bits; // initialized with zeros
 
       // Receive data from input interface
       ret = TRAP_RECEIVE(0, rec, rec_size, tmplt);
       // Handle possible errors
       TRAP_DEFAULT_RECV_ERROR_HANDLING(ret, continue, break);
 
-      // Check if IP is in range
+      
       ip.set_IP(&ur_get(tmplt, rec, F_SRC_IP));
       std::cout << "SRC IP: " << ip.toString() << std::endl;
+
+      // Check if IP is in range
+      if ((ip >= range[FIRST_ADDR]) && (ip <= range[LAST_ADDR])) {
+         // Determine version
+         if (ip.ip_isv4()) {
+            // 0000:0000:0000:0000:<IPv4>:ffff:ffff - in 9th-12th byte
+            // stored in ip.data->ui32[2]
+         } else {
+            // ...
+         }
+         // Set bit in vector
+      }
+      
       ip.set_IP(&ur_get(tmplt, rec, F_DST_IP));
       std::cout << "DST IP: " << ip.toString() << std::endl;
 
       // Set corresponding bit in vector
 
       // Set alarm each interval for storing data to bitmap file
-      
-
-      // Read FOO and BAR from input record and compute their sum
-      //uint32_t baz = ur_get(in_tmplt, in_rec, F_FOO) +
-      //               ur_get(in_tmplt, in_rec, F_BAR);
 
    }
 
