@@ -99,13 +99,14 @@ trap_module_info_t *module_info = NULL;
 
 #define MODULE_PARAMS(PARAM) \
    PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [min]", required_argument, "uint32") \
-   PARAM('V', "ip_version", "IP version (4 or 6, 4 by default)", no_argument, "none") \
+   PARAM('V', "ip_version", "IP version (4 or 6, 4 by default)", required_argument, "uint32") \
    PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
    PARAM('r', "range", "Range of processed IP addresses that must correspond chosen granularity (First address,Last address), entire IP space by default.", required_argument, "string") \
    PARAM('f', "filename", "Name of bitmap files.", required_argument, "string")
 
 static int stop = 0;
+static int save_vector = 0;
 
 // Declaration of structure prototype for printing progress
 NMCM_PROGRESS_DECL;
@@ -113,90 +114,65 @@ NMCM_PROGRESS_DECL;
 // Function to handle SIGTERM and SIGINT signals (used to stop the module)
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
 
-/** TODO alarm signal */
-
 /**
- * \brief Multiplication of characters in string
- * \param [in] n Multiplicator.
- * \param [in] str String to be multiplied
- * \return Multiplied string
+ * \brief SIGALRM handler
+ * Sets flag for storing data to bitmap every interval.
  */
-/*http://stackoverflow.com/questions/11843226/multiplying-a-string-by-an-int-in-c*/
-std::string operator*(const std::string& str, unsigned int n)
-{
-   std::stringstream result;
-   while (n--) {
-      result << str;
+void IPactivity_signal_handler (int sig) {
+   switch (sig) {
+      case SIGALRM:
+         save_vector = 1;
+         break;
+      default:
+         break;
    }
-   return result.str();
-}
-std::string operator*(unsigned int n, const std::string& str)
-{
-   return str * n;
 }
 
 /**
- * \brief Converts address based on chosen granularity
+ * \brief Converts address based on chosen granularity (shifts to right)
  * \param [in] addr IP address to be checked.
  * \return True upon success.
  */
 void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
-   std::vector<uint8_t> bytes = addr->get_bytes();
    int version = addr->get_version();
+   
+
    // How many zeros at the end
    int zeros = (version == 4) ? (IPV4_BITS - granularity) : (IPV6_BITS - granularity);
 
    if (zeros == 0) {
       return;
    }
+   //std::cout << "before: " << addr->toString() << std::endl;
 
-   // Goes from right to left
-   for (int i = ((version == 4) ? 3 : 15); i >= 0; i--) {
+   // IPv4
+   if (version == 4) {
+      uint32_t tmp_ip = addr->get_ipv4_int();
 
-      // More bytes to go, the byte equals 0
-      if (zeros >= 8) {
-         bytes[i] = 0;
-         zeros -= 8;
-      } else if (zeros == 0) { // done
-         break;
-      } else {
-         // Convert needed part
-         for (int b = 0; (zeros > 0) && (b < 8) ; b++, zeros--) {
-            bytes[i] &= ~(1 << b);
-         }
-      }
+      // Shift
+      tmp_ip >>= zeros;
+      addr->set_ipv4_int(tmp_ip);
+   } else {
+      // IPv6
+      std::bitset<128> tmp_ip = addr->get_bits_ipv6();
+
+      // Shift
+      tmp_ip >>= zeros;
+      addr->set_bits_ipv6(tmp_ip);
    }
 
-   addr->set_bytes(bytes, true);
+   //std::cout << "after: " << addr->toString() << std::endl;
    return;
-}
-
-/**
- *  \brief Power function for integers.
- *  \param [in] base, exp (exponent)
- *  \return Result of base ^ exp
- */
- /* http://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int */
-int int_power(int base, int exp) {
-   int result = 1;
-   while (exp) {
-      if (exp & 1) {
-         result *= base;
-      }
-      exp >>= 1;
-      base *= base;
-   }
-   return result;
 }
 
 /**
  * \brief Return size of address space between two addresses in set granularity
  * \param [in] addr1, addr2 start and end of considered range
  * \param [in] granularity  granularity of addresses inside said range.
- * \return Size of bit vector
+ * \return addr2/granularity - addr1/granularity
  */
  
-uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granularity)
+uint64_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
 {
    // Check IP validity, same version
    if ((addr1.get_version() != addr2.get_version()) ||
@@ -204,76 +180,75 @@ uint64_t calculate_vector_size (IPaddr_cpp addr1, IPaddr_cpp addr2, int granular
       return 0;
    }
 
-   int size = addr1.get_bytes().size();
+   int version = addr1.get_version();
 
-   // Create bytes representation for better handling
-   std::vector<uint8_t> addr1_bytes = addr1.get_bytes();
-   std::vector<uint8_t> addr2_bytes = addr2.get_bytes();
+   if (version == 4) {
+      // IPv4, substract uint32_t
+      uint32_t ip1 = addr1.get_ipv4_int();
+      uint32_t ip2 = addr2.get_ipv4_int();
 
-   if ((addr1_bytes.size() == 0) || (addr2_bytes.size() == 0) ||
-       (addr1_bytes.size() != addr2_bytes.size())) {
-      return 0;
-   }
+      //std::cout << ip2-ip1 << std::endl;
+      return ip2-ip1;
 
-   // Substraction result
-   std::vector<uint8_t> substr_bytes;
-   substr_bytes.resize(size);
-   uint8_t borrow = 0;
+   } else {
+      /** FIX */
+      // IPv6, substract uint32_t 4x
+      // Substraction result
+      std::vector<uint32_t> ip1 = addr1.get_ipv6_int();
+      std::vector<uint32_t> ip2 = addr2.get_ipv6_int();
+      std::vector<uint32_t> substr;
+      substr.resize(4);
+      uint8_t borrow = 0;
+      uint64_t result = 0;
 
-   // Substract IPs (base 256) > each byte = "digit" of the result
-   // Go from right to left
-   for (int i = size-1; i >= 0; i--) {
-      // Normal substraction, no borrow
-      if (addr2_bytes[i] >= (addr1_bytes[i] + borrow)) {
-         substr_bytes[i] = addr2_bytes[i] - addr1_bytes[i] - borrow;
-         borrow = 0;
-      } else {
-         // Add radix to remain positive result, add borrow
-         substr_bytes[i] = (addr2_bytes[i] + 256) - addr1_bytes[i] - borrow;
-         borrow = 1;
+      if ((ip1.size() != 4) || (ip2.size() != 4)) {
+         return 0;
       }
-   }
 
-   // Result in case of  IPv4 (Bk = Byte on index k): 
-   // B0 * 2^24 + B1 * 2 ^ 16 + B2 * 2^8 + B3
-   // Both addresses were written in said granularity
-   // - so it didn't influence the substraction 
-   // - and it will cause a remainder 0 when divided by it
-
-   // TODO: Check if it is greater than 2^64 (uint64_max)
-
-   uint64_t result = 0;
-   int exp;
-   // At first, go after octets fron left to right and add:
-   // x * 2 ^ ((32 - (i+1)*8) - (32 - granularity))
-   // x * 2 ^ (granularity - (i+1)*8)
-
-   // Go through bytes
-   for (int i = 0;  i < size; i++) {
-      exp = (i + 1) * 8;
-
-      // Last bit of current byte does not exceed granularity
-      if (exp < granularity) {
-         result += substr_bytes[i] * int_power(2, granularity - exp);
-      } else if (exp == granularity) {
-         // Last bit is at subnet limit
-         result += substr_bytes[i];
-         break;
-      } else {
-         // Take the remainder to subnet limit, add it up
-         // Convert octet to binary
-         std::string tmp = std::bitset<8>(substr_bytes[i]).to_string();
-
-         // Keep only part before granularity line
-         tmp = tmp.substr(0, 8 - (exp - granularity));
-
-         // Add it to the result
-         result += std::strtol(tmp.c_str(), NULL, 2);
-         break;
+      // Go from right to left substraction of 32b parts
+      for (int i = 3; i >= 0; i--) {
+         // Normal substraction, no borrow
+         if (ip2[i] >= (ip1[i] + borrow)) {
+            substr[i] = ip2[i] - ip1[i] - borrow;
+            borrow = 0;
+         } else {
+            // Add radix to remain positive result, add borrow
+            substr[i] = (ip2[i] + UINT32_MAX) - ip1[i] - borrow;
+            borrow = 1;
+         }
       }
-   }
 
-   return result;
+      // Sum them up, watch out for overflow
+      for (int i = 3; i >= 0; i--) {
+         if ((result + substr[i]) > UINT64_MAX) {
+            return 0;
+         } else {
+            result += substr[i];
+         }
+      }
+      return result;
+   }
+}
+
+/**
+ * \brief Write bit vector to file.
+ * \param [out] bitmap Target file.
+ * \param [in]  bits   Bit vector to be stored;
+ */
+/*http://stackoverflow.com/questions/29623605/how-to-dump-stdvectorbool-in-a-binary-file*/
+/** Maybe use dynamic bitset? */
+void binary_write(std::ofstream& bitmap, const std::vector<bool>& bits)
+{
+    unsigned long int n = bits.size();
+    //bitmap.write((const char*)&n, sizeof(unsigned long int));
+    for(unsigned long int i = 0; i < n;)
+    {
+        unsigned char aggr = 0;
+        for(unsigned char mask = 1; mask > 0 && i < n; ++i, mask <<= 1)
+            if(bits.at(i))
+                aggr |= mask;
+        bitmap.write((const char*)&aggr, sizeof(unsigned char));
+    }
 }
 
 /** Main function */
@@ -343,7 +318,7 @@ int main(int argc, char **argv)
             // Convert all IPs to ip_addr_t
             range[FIRST_ADDR].fromString(tmp_range.substr(0, index));
             tmp_range.erase(0, index + delim.length());
-            range[LAST_ADDR].fromString(tmp_range);
+            range[LAST_ADDR].fromString(tmp_range);;
 
             rflag = true;
             break;
@@ -388,7 +363,7 @@ int main(int argc, char **argv)
           ((ip_version == 6) && (!range[FIRST_ADDR].is_ipv6() ||
                                  !range[LAST_ADDR].is_ipv6()))) {
 
-         fprintf(stderr, "Error: IPv%ds inserted as range are not valid.",
+         fprintf(stderr, "Error: IPv%ds inserted as range are not valid.\n",
                  ip_version);
          return 1;
       }
@@ -400,7 +375,7 @@ int main(int argc, char **argv)
       std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
 
       if (range[FIRST_ADDR] == range[LAST_ADDR]) {
-         fprintf(stderr, "Error: Range is smaller than one subnet /%d",
+         fprintf(stderr, "Error: Range is smaller than one subnet /%d\n",
                granularity);
          return 1;
       }
@@ -457,8 +432,17 @@ int main(int argc, char **argv)
    name.str("");
 
    // Get size of bit vector
-   int vector_size = calculate_vector_size(range[FIRST_ADDR],
-                                           range[LAST_ADDR], granularity);
+   uint64_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
+
+   std::cout << "vector size: " << vector_size << std::endl;
+   //std::cout << UINT32_MAX << " " << UINT64_MAX << std::endl;
+
+   // Start the alarm
+   signal(SIGALRM, IPactivity_signal_handler);
+   alarm(interval);
+
+   std::vector<bool> bits; // initialized with zeros
+   bits.resize(vector_size);
 
    /** Main loop */
    while (!stop) {
@@ -466,39 +450,57 @@ int main(int argc, char **argv)
       uint16_t rec_size;
       IPaddr_cpp ip(false);
 
-      std::vector<bool> bits; // initialized with zeros
-      bits.resize(vector_size);
-
       // Receive data from input interface
       ret = TRAP_RECEIVE(0, rec, rec_size, tmplt);
       // Handle possible errors
       TRAP_DEFAULT_RECV_ERROR_HANDLING(ret, continue, break);
 
-      
-      ip.set_IP(&ur_get(tmplt, rec, F_SRC_IP));
-      std::cout << "SRC IP: " << ip.toString() << std::endl;
-
-      // Check if IP is in range
-      if ((ip >= range[FIRST_ADDR]) && (ip <= range[LAST_ADDR])) {
-         // Determine version
-         if (ip.is_ipv4()) {
-            // 0000:0000:0000:0000:<IPv4>:ffff:ffff - in 9th-12th byte
-            // stored in ip.data->ui32[2]
+      // Check SRC and DST IP
+      for (int i = 0; i < 2; i++) {
+         if (i == 0) {
+            ip.set_IP(&ur_get(tmplt, rec, F_SRC_IP), true);
          } else {
-            // ...
+            ip.set_IP(&ur_get(tmplt, rec, F_DST_IP), true);
          }
-         // Set bit in vector
+
+         // Check IP version
+         if (ip.get_version() == ip_version) {
+            //std::string origin = ip.toString();
+            convert_to_granularity(&ip, granularity);
+
+            // Check if IP is in range
+            if ((ip >= range[FIRST_ADDR]) && (ip <= range[LAST_ADDR])) {
+
+               // Calculate index in bit vector
+               //std::cout << "src ip: " << ip.toString() << std::endl;
+               uint64_t index = ip_substraction(range[FIRST_ADDR], ip);
+               //std::cout << "index: " << index << std::endl;
+
+               // Set bit in vector (would condition that it is 0 make it any faster?)
+               bits[index] = 1;
+            
+            }
+         }
       }
-      
-      ip.set_IP(&ur_get(tmplt, rec, F_DST_IP));
-      std::cout << "DST IP: " << ip.toString() << std::endl;
 
-      // Set corresponding bit in vector
 
-      // Set alarm each interval for storing data to bitmap file
+      // Each interval, store data to bitmap
+      if (save_vector) {
+         /*
+         std::cout << "bitset: "  << std::endl;
+         for (int i = 0; i < bits.size(); i++)
+            std::cout << bits[i];
+         */
+         save_vector = false;
+         alarm(interval);
+      }
 
    }
-
+   /*
+   std::cout << "bitset: "  << std::endl;
+   for (int i = 0; i < bits.size(); i++)
+      std::cout << bits[i];
+   */
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
    FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
