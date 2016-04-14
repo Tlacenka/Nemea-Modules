@@ -182,6 +182,10 @@ uint64_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
 
    int version = addr1.get_version();
 
+   if (addr1 > addr2) {
+      return 0;
+   }
+
    if (version == 4) {
       // IPv4, substract uint32_t
       uint32_t ip1 = addr1.get_ipv4_int();
@@ -434,7 +438,11 @@ int main(int argc, char **argv)
    // Get size of bit vector
    uint64_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
 
-   std::cout << "vector size: " << vector_size << std::endl;
+   if (vector_size == 0) {
+      fprintf(stderr, "Error: No address space to analyse.\n");
+      return 1;
+   }
+   std::cout << "vector size: " << (unsigned long long)vector_size << std::endl;
    //std::cout << UINT32_MAX << " " << UINT64_MAX << std::endl;
 
    // Start the alarm
@@ -472,7 +480,7 @@ int main(int argc, char **argv)
             if ((ip >= range[FIRST_ADDR]) && (ip <= range[LAST_ADDR])) {
 
                // Calculate index in bit vector
-               //std::cout << "src ip: " << ip.toString() << std::endl;
+               //std::cout << "ip: " << origin << std::endl;
                uint64_t index = ip_substraction(range[FIRST_ADDR], ip);
                //std::cout << "index: " << index << std::endl;
 
