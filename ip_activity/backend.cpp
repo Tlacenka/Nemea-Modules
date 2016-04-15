@@ -106,7 +106,7 @@ trap_module_info_t *module_info = NULL;
    PARAM('f', "filename", "Name of bitmap files.", required_argument, "string")
 
 static int stop = 0;
-static int save_vector = 0;
+static int save_vectors = 0;
 
 // Declaration of structure prototype for printing progress
 NMCM_PROGRESS_DECL;
@@ -121,7 +121,7 @@ TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
 void IPactivity_signal_handler (int sig) {
    switch (sig) {
       case SIGALRM:
-         save_vector = 1;
+         save_vectors = 1;
          break;
       default:
          break;
@@ -241,18 +241,33 @@ uint64_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
  */
 /*http://stackoverflow.com/questions/29623605/how-to-dump-stdvectorbool-in-a-binary-file*/
 /** Maybe use dynamic bitset? */
-void binary_write(std::ofstream& bitmap, const std::vector<bool>& bits)
+void binary_write(std::string filename, std::vector<bool> bits)
 {
-    unsigned long int n = bits.size();
-    //bitmap.write((const char*)&n, sizeof(unsigned long int));
-    for(unsigned long int i = 0; i < n;)
-    {
-        unsigned char aggr = 0;
-        for(unsigned char mask = 1; mask > 0 && i < n; ++i, mask <<= 1)
-            if(bits.at(i))
-                aggr |= mask;
-        bitmap.write((const char*)&aggr, sizeof(unsigned char));
-    }
+   std::ofstream bitmap;
+   uint64_t size = bits.size();
+   std::ostringstream name;
+   name << filename;
+
+   bitmap.open(name.str().c_str(),
+               std::ofstream::out | std::ofstream::app);
+
+   for (uint64_t i = 0; i < size;) {
+      uint8_t byte = 0;
+
+      // Store each 8 bits to byte
+      for (uint8_t mask = 1; (mask > 0) && (i < size); i++, mask <<= 1) {
+         if (bits[i]) {
+                byte |= mask;
+         }
+      }
+
+      // Stream after bytes to file
+      bitmap.write((const char*)&byte, sizeof(uint8_t));
+   }
+
+   bitmap.close();
+
+   return;
 }
 
 /** Main function */
@@ -376,7 +391,7 @@ int main(int argc, char **argv)
       convert_to_granularity(&range[FIRST_ADDR], granularity);
       convert_to_granularity(&range[LAST_ADDR], granularity);
 
-      std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
+      //std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
 
       if (range[FIRST_ADDR] == range[LAST_ADDR]) {
          fprintf(stderr, "Error: Range is smaller than one subnet /%d\n",
@@ -402,8 +417,6 @@ int main(int argc, char **argv)
    // Load file to YAML parser
    YAML::Node config_file = YAML::LoadFile("config.yaml");
 
-   std::ofstream bitmaps[3];
-
    // Set bitmap options for server
    config_file[filename]["addresses"]["version"] = (ip_version == 4) ? "IPv4" : "IPv6";
    config_file[filename]["addresses"]["granularity"] = granularity;
@@ -416,24 +429,21 @@ int main(int argc, char **argv)
 
     std::ofstream fout("config.yaml");
     fout << config_file;
+    fout.close(); // ??
 
    // Create bitmap files
+   std::ofstream bitmap;
+   std::string suffix[3] = {"_i.bmap", "_o.bmap", "_io.bmap"};
    std::ostringstream name;
-
-   name << filename << "_i.bmap";
-   bitmaps[IN].open(name.str().c_str(),
-                    std::ofstream::out | std::ofstream::app);
    name.str("");
 
-   name << filename << "_o.bmap";
-   bitmaps[OUT].open(name.str().c_str(),
-                     std::ofstream::out | std::ofstream::app);
-   name.str("");
-
-   name << filename << "_io.bmap";
-   bitmaps[INOUT].open(name.str().c_str(),
-                       std::ofstream::out | std::ofstream::app);
-   name.str("");
+   for (int i = 0; i < 3; i++) {
+      name << filename << suffix[i];
+      bitmap.open(name.str().c_str(),
+                      std::ofstream::out | std::ofstream::trunc);
+      bitmap.close();
+      name.str("");
+   }
 
    // Get size of bit vector
    uint64_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
@@ -442,15 +452,13 @@ int main(int argc, char **argv)
       fprintf(stderr, "Error: No address space to analyse.\n");
       return 1;
    }
-   std::cout << "vector size: " << (unsigned long long)vector_size << std::endl;
-   //std::cout << UINT32_MAX << " " << UINT64_MAX << std::endl;
+   //std::cout << "vector size: " << (unsigned long long)vector_size << std::endl;
 
    // Start the alarm
    signal(SIGALRM, IPactivity_signal_handler);
    alarm(interval);
 
-   std::vector<bool> bits; // initialized with zeros
-   bits.resize(vector_size);
+   std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
 
    /** Main loop */
    while (!stop) {
@@ -465,7 +473,7 @@ int main(int argc, char **argv)
 
       // Check SRC and DST IP
       for (int i = 0; i < 2; i++) {
-         if (i == 0) {
+         if (i == IN) {
             ip.set_IP(&ur_get(tmplt, rec, F_SRC_IP), true);
          } else {
             ip.set_IP(&ur_get(tmplt, rec, F_DST_IP), true);
@@ -485,30 +493,31 @@ int main(int argc, char **argv)
                //std::cout << "index: " << index << std::endl;
 
                // Set bit in vector (would condition that it is 0 make it any faster?)
-               bits[index] = 1;
+               bits[i][index] = 1;
+               bits[INOUT][index] = 1;
             
             }
          }
       }
 
-
-      // Each interval, store data to bitmap
-      if (save_vector) {
-         /*
-         std::cout << "bitset: "  << std::endl;
-         for (int i = 0; i < bits.size(); i++)
-            std::cout << bits[i];
-         */
-         save_vector = false;
+      // Each interval, store data to bitmaps
+      if (save_vectors) {
+         
+         for (int i = 0; i < 3; i++) {
+            binary_write(filename + suffix[i], bits[i]);
+         }
+         
+         save_vectors = false;
          alarm(interval);
       }
 
    }
-   /*
-   std::cout << "bitset: "  << std::endl;
-   for (int i = 0; i < bits.size(); i++)
-      std::cout << bits[i];
-   */
+
+   // Store the rest of data to bitmaps
+   for (int i = 0; i < 3; i++) {
+      binary_write(filename + suffix[i], bits[i]);
+   }
+   
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
    FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
