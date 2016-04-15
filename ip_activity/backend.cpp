@@ -381,13 +381,7 @@ int main(int argc, char **argv)
          return 1;
       }
 
-      // Convert range to granularity
-      convert_to_granularity(&range[FIRST_ADDR], granularity);
-      convert_to_granularity(&range[LAST_ADDR], granularity);
-
-      //std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
-
-      if (range[FIRST_ADDR] == range[LAST_ADDR]) {
+      if (range[FIRST_ADDR] >= range[LAST_ADDR]) {
          fprintf(stderr, "Error: Range is smaller than one subnet /%d\n",
                granularity);
          return 1;
@@ -438,6 +432,13 @@ int main(int argc, char **argv)
       bitmap.close();
       name.str("");
    }
+
+   // Convert IPs to granularity
+   convert_to_granularity(&range[FIRST_ADDR], granularity);
+   convert_to_granularity(&range[LAST_ADDR], granularity);
+
+   //std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
+
 
    // Get size of bit vector
    uint32_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
