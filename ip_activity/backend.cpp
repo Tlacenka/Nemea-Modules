@@ -172,7 +172,7 @@ void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
  * \return addr2/granularity - addr1/granularity
  */
  
-uint64_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
+uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
 {
    // Check IP validity, same version
    if ((addr1.get_version() != addr2.get_version()) ||
@@ -224,7 +224,7 @@ uint64_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
 
       // Sum them up, watch out for overflow
       for (int i = 3; i >= 0; i--) {
-         if ((result + substr[i]) > UINT64_MAX) {
+         if ((result + substr[i]) >= UINT32_MAX) {
             return 0;
          } else {
             result += substr[i];
@@ -274,7 +274,6 @@ void binary_write(std::string filename, std::vector<bool> bits)
 int main(int argc, char **argv)
 {
    int ret;
-   
 
    // Initialise TRAP
    INIT_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
@@ -331,13 +330,15 @@ int main(int argc, char **argv)
             index = tmp_range.find(delim);
 
             if (index == std::string::npos) {
+               fprintf(stderr, "Error: IP range - bad format.\n");
                return 1;
             }
 
             // Convert all IPs to ip_addr_t
             range[FIRST_ADDR].fromString(tmp_range.substr(0, index));
             tmp_range.erase(0, index + delim.length());
-            range[LAST_ADDR].fromString(tmp_range);;
+            range[LAST_ADDR].fromString(tmp_range);
+            //std:: cout << range[0].toString() << " " << range[1].toString() << std::endl;
 
             rflag = true;
             break;
@@ -362,13 +363,6 @@ int main(int argc, char **argv)
               ip_version, ((ip_version == 4) ? 32 : 128));
       return 1;
    }
-
-   // Create mask
-   IPaddr_cpp mask;
-   std::string tmp_ip = (ip_version == 4) ? "255.255.255.255" :
-                        "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-   mask.fromString(tmp_ip);
-   convert_to_granularity(&mask, granularity);
 
    // If no range entered, used the entire range at /8 by default
    if (!rflag) {
@@ -446,13 +440,12 @@ int main(int argc, char **argv)
    }
 
    // Get size of bit vector
-   uint64_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
+   uint32_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
 
    if (vector_size == 0) {
-      fprintf(stderr, "Error: No address space to analyse.\n");
+      fprintf(stderr, "Error: Address space is too big - maximum is 2^32.\n");
       return 1;
    }
-   //std::cout << "vector size: " << (unsigned long long)vector_size << std::endl;
 
    // Start the alarm
    signal(SIGALRM, IPactivity_signal_handler);
