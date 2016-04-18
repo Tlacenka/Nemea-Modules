@@ -92,13 +92,16 @@ trap_module_info_t *module_info = NULL;
 #define OUT 1
 #define INOUT 2
 
+#define MAX_WINDOW 500
+
 /* Example: ./ip_activity -i "t:12345" ..... */
 
 #define MODULE_BASIC_INFO(BASIC) \
    BASIC("IP Activity module", "This module scans incoming flows and stores info about IP activity in a given range of IP.", 1,0)
 
 #define MODULE_PARAMS(PARAM) \
-   PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [min]", required_argument, "uint32") \
+   PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [sec]", required_argument, "uint32") \
+   PARAM('w', "time_window", "Time window for storing data to bitmap (default 100 intervals). [intervals]", required_argument, "uint32") \
    PARAM('V', "ip_version", "IP version (4 or 6, 4 by default)", required_argument, "uint32") \
    PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
@@ -195,7 +198,6 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
       return ip2-ip1;
 
    } else {
-      /** FIX */
       // IPv6, substract uint32_t 4x
       // Substraction result
       std::vector<uint32_t> ip1 = addr1.get_ipv6_int();
@@ -294,7 +296,7 @@ int main(int argc, char **argv)
    NMCM_PROGRESS_DEF;
 
    // Initialization of default values
-   int interval = 300;
+   int interval = 300, window = 100;
    bool print_progress = false;
    int granularity = 8;
    int ip_version = 4;
@@ -311,6 +313,17 @@ int main(int argc, char **argv)
       switch (opt) {
          case 't':
             interval = atoi(optarg);
+            if (interval < 0) {
+               fprintf(stderr, "Error: Time interval - invalid value %d.\n", interval);
+               return 1;
+            }
+            break;
+         case 'w':
+            window = atoi(optarg);
+            if ((window < 0) || (window > MAX_WINDOW)) {
+               fprintf(stderr, "Error: Time window - invalid value %d.\n", window);
+               return 1;
+            }
             break;
          case 'p':
             print_progress = true;
@@ -360,7 +373,7 @@ int main(int argc, char **argv)
    if (((ip_version == 4) && (granularity > IPV4_BITS)) ||
        ((ip_version == 6) && (granularity > IPV6_BITS))) {
       fprintf(stderr, "Error: Granularity - IPv%d netmask value cannot be greater than %d.\n",
-              ip_version, ((ip_version == 4) ? 32 : 128));
+              ip_version, ((ip_version == 4) ? IPV4_BITS : IPV6_BITS));
       return 1;
    }
 
@@ -389,9 +402,9 @@ int main(int argc, char **argv)
    }
 
    // Get time
-   std::time_t start_time = std::time(NULL);
-   struct tm* time_struct = localtime(&start_time);
-   char str_time[20];
+   //std::time_t start_time = std::time(NULL);
+   //struct tm* time_struct = localtime(&start_time);
+   //char str_time[20];
 
 
    /** Create/open YAML configuration file  and bitmaps */
@@ -408,16 +421,24 @@ int main(int argc, char **argv)
    // Set bitmap options for server
    config_file[filename]["addresses"]["version"] = (ip_version == 4) ? "IPv4" : "IPv6";
    config_file[filename]["addresses"]["granularity"] = granularity;
-   config_file[filename]["addresses"]["min"] = range[FIRST_ADDR].toString();
-   config_file[filename]["addresses"]["max"] = range[LAST_ADDR].toString();
+
+   // Remove first and last if they exist (when rewriting, ! <!> appeared)
+   if (config_file[filename]["addresses"]["first"]) {
+      config_file[filename]["addresses"].remove("first");
+   }
+   if (config_file[filename]["addresses"]["last"]) {
+      config_file[filename]["addresses"].remove("last");
+   }
+   config_file[filename]["addresses"]["first"] = range[FIRST_ADDR].toString();
+   config_file[filename]["addresses"]["last"] = range[LAST_ADDR].toString();
 
    config_file[filename]["time"]["granularity"] = interval;
-   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
-   config_file[filename]["time"]["beginning"] = str_time;
+   //std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
+   config_file[filename]["time"]["intervals"] = window;
 
     std::ofstream fout("config.yaml");
     fout << config_file;
-    fout.close(); // ??
+    fout.close();
 
    // Create bitmap files
    std::ofstream bitmap;
@@ -453,6 +474,7 @@ int main(int argc, char **argv)
    alarm(interval);
 
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
+   int intervals = 0;
 
    /** Main loop */
    while (!stop) {
@@ -496,12 +518,13 @@ int main(int argc, char **argv)
 
       // Each interval, store data to bitmaps
       if (save_vectors) {
-         
+         /** TODO time window */
          for (int i = 0; i < 3; i++) {
             binary_write(filename + suffix[i], bits[i]);
          }
          
          save_vectors = false;
+         intervals ++;
          alarm(interval);
       }
 
@@ -510,6 +533,7 @@ int main(int argc, char **argv)
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
       binary_write(filename + suffix[i], bits[i]);
+      intervals++;
    }
    
    /* Cleanup */
