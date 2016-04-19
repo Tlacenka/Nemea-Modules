@@ -208,31 +208,48 @@ def create_request_handler(args):
          if index >= 0:
             get_path = self.path[:index]
             query = cgi.parse_qs(self.path[index+1:])
-         else:
-            get_path = self.path
    
          # Print out logging information about the path and args.
          if 'content-type' in self.headers:
             ctype, _ = cgi.parse_header(self.headers['content-type'])
             print('TYPE ' + ctype)
    
-         print('PATH ' + get_path)
-         print('ARGS ' + len(query))
-         if len(args):
-            i = 0
-            for key in sorted(args):
-               print ('ARG[' + i + ']: ' + key + ' = ' + args[key])
-               i += 1
+         print('PATH ' + self.path)
 
-         self.send_response(200)  # OK
-         self.send_header('Content-type', 'text/html')
-         self.end_headers()
-      
-         self.wfile.write('<html>')
-         self.wfile.write('<body>')
-         self.wfile.write('Sasa je trdlo.')
-         self.wfile.write('</body>')
-         self.wfile.write('</html>')
+         if self.path == "/":
+
+            self.send_response(200)  # OK
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+
+            try:
+               with open(args['dir'] + self.path + 'frontend.html', 'r') as fd:
+                  self.send_response(200)
+                  self.send_header('Content-type', 'text/html')
+                  self.end_headers()
+
+                  self.wfile.write(fd.read())
+            except IOError:
+               print('File ' + args['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               self.send_response(404)
+               sys.exit(1)
+
+         else:
+            self.send_response(200)  # OK
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            try:
+               with open(args['dir'] + self.path, 'r') as fd:
+                  self.send_response(200)
+                  self.send_header('Content-type', 'text/html')
+                  self.end_headers()
+
+                  self.wfile.write(fd.read())
+            except IOError:
+               print('File ' + args['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               self.send_response(404)
+               sys.exit(1)
+            
 
    return My_RequestHandler
 
@@ -249,9 +266,9 @@ def main():
                        help='Server port, (8080 by default)')
    parser.add_argument('-H', '--hostname', type=str, default='localhost',
                        help='Server hostname (localhost by default).')
-   parser.add_argument('-d', '--dir', type=str, default='./',
+   parser.add_argument('-d', '--dir', type=str, default='.',
                        help='Path to directory with web client files (HTML, CSS, JS) (current directory by default).')
-   parser.add_argument('-c', '--config', type=str, default='./', required=True,
+   parser.add_argument('-c', '--config', type=str, default='.', required=True,
                        help='Path to configuration file (current directory by default).')
    parser.add_argument('-f', '--filename', type=str, default='bitmap', required=False,
                        help='Filename of bitmap storage files (bitmap by default).')
@@ -274,6 +291,8 @@ def main():
    ip_activity_RequestHandler = create_request_handler(args)
 
    server = HTTPServer((args['hostname'], args['port']), ip_activity_RequestHandler)
+
+   print("Starting server")
 
    # Serve forever
    try:
