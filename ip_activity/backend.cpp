@@ -440,6 +440,7 @@ int main(int argc, char **argv)
    std::ostringstream name;
    name.str("");
 
+   // If they aren't empty, their content is truncated
    for (int i = 0; i < 3; i++) {
       name << filename << suffix[i];
       bitmap.open(name.str().c_str(),
@@ -458,19 +459,14 @@ int main(int argc, char **argv)
    // Get size of bit vector
    uint32_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
 
-   if ((vector_size == 0) || vector_size > 1000) {
+   if ((vector_size == 0) || vector_size > MAX_VECTOR_SIZE) {
       fprintf(stderr, "Error: Address space must be between 1 and 1000 subnets.\n");
       return 1;
    }
 
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
-
-   // Fill all 3 bitmaps with zeros (vector_size x window)
-   for (int i = 0; i < 3; i++) {
-      for (int k = 0; k < window; k++) {
-         binary_write(filename + suffix[i], bits[i], (std::ofstream::out | std::ofstream::app), k);
-      }
-   }
+   bool rewrite = false;
+   std::ios_base::openmode mode = std::ofstream::out | std::ofstream::app;
 
    // Start the alarm
    signal(SIGALRM, IPactivity_signal_handler);
@@ -520,12 +516,21 @@ int main(int argc, char **argv)
 
       // Each interval, store data to bitmaps
       if (save_vectors) {
-         /** TODO time window */
          for (int i = 0; i < 3; i++) {
-            binary_write(filename + suffix[i], bits[i], std::ofstream::out, intervals);
+            binary_write(filename + suffix[i], bits[i], mode, intervals);
             bits[i].assign(bits[i].size(), 0);
          }
-         
+
+         // When the buffer is full, turn off appending
+         /** Find out if offset without append would do */
+         if (!rewrite) {
+            std::cout << intervals;
+            if ((intervals + 1) == window) {
+               rewrite = true;
+               mode = mode & (~(std::ofstream::app));
+            }
+         }
+
          save_vectors = false;
          intervals = (intervals + 1) % window;
          alarm(interval);
@@ -535,7 +540,7 @@ int main(int argc, char **argv)
 
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
-      binary_write(filename + suffix[i], bits[i], std::ofstream::out, intervals);
+      binary_write(filename + suffix[i], bits[i], mode, intervals);
    }
    
    /* Cleanup */
