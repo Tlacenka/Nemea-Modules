@@ -83,16 +83,15 @@ trap_module_info_t *module_info = NULL;
 #define IPV4 0
 #define IPv6 1
 
-#define IPV4_BYTES 4
-#define IPV6_BYTES 16
 #define IPV4_BITS 32
 #define IPV6_BITS 128
 
-#define IN 0
-#define OUT 1
-#define INOUT 2
+#define SRC 0
+#define DST 1
+#define SRC_DST 2
 
-#define MAX_WINDOW 500
+#define MAX_WINDOW 1000
+#define MAX_VECTOR_SIZE 1000
 
 /* Example: ./ip_activity -i "t:12345" ..... */
 
@@ -102,11 +101,10 @@ trap_module_info_t *module_info = NULL;
 #define MODULE_PARAMS(PARAM) \
    PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [sec]", required_argument, "uint32") \
    PARAM('w', "time_window", "Time window for storing data to bitmap (default 100 intervals). [intervals]", required_argument, "uint32") \
-   PARAM('V', "ip_version", "IP version (4 or 6, 4 by default)", required_argument, "uint32") \
    PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
-   PARAM('r', "range", "Range of processed IP addresses that must correspond chosen granularity (First address,Last address), entire IP space by default.", required_argument, "string") \
-   PARAM('f', "filename", "Name of bitmap files.", required_argument, "string")
+   PARAM('r', "range", "Range of processed IP addresses that must correspond format (First address,Last address).", required_argument, "string") \
+   PARAM('f', "filename", "Name of bitmap files. (bitmap by default)", required_argument, "string")
 
 static int stop = 0;
 static int save_vectors = 0;
@@ -157,7 +155,7 @@ void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
       addr->set_ipv4_int(tmp_ip);
    } else {
       // IPv6
-      std::bitset<128> tmp_ip = addr->get_bits_ipv6();
+      std::bitset<IPV6_BITS> tmp_ip = addr->get_bits_ipv6();
 
       // Shift
       tmp_ip >>= zeros;
@@ -205,7 +203,6 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
       std::vector<uint32_t> substr;
       substr.resize(4);
       uint8_t borrow = 0;
-      uint64_t result = 0;
 
       if ((ip1.size() != 4) || (ip2.size() != 4)) {
          return 0;
@@ -224,15 +221,13 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
          }
       }
 
-      // Sum them up, watch out for overflow
-      for (int i = 3; i >= 0; i--) {
-         if ((result + substr[i]) >= UINT32_MAX) {
-            return 0;
-         } else {
-            result += substr[i];
-         }
+      // Since the maximum allowed value is definitely below 2^32,
+      // only the last 4 bytes can be occupied
+      if (substr[0] || substr[1] || substr[2]) {
+         return 0;
       }
-      return result;
+
+      return substr[3];
    }
 }
 
@@ -240,18 +235,26 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
  * \brief Write bit vector to file.
  * \param [out] bitmap Target file.
  * \param [in]  bits   Bit vector to be stored;
+ * \param [in]  index  Offset of row in bitmap (unit is vector_size);
+ * \param [in]  mode   Open mode.
  */
 /*http://stackoverflow.com/questions/29623605/how-to-dump-stdvectorbool-in-a-binary-file*/
 /** Maybe use dynamic bitset? */
-void binary_write(std::string filename, std::vector<bool> bits)
+void binary_write(std::string filename, std::vector<bool> bits,
+                  std::ios_base::openmode mode, uint32_t index)
 {
    std::ofstream bitmap;
-   uint64_t size = bits.size();
+   uint32_t size = bits.size();
    std::ostringstream name;
    name << filename;
 
-   bitmap.open(name.str().c_str(),
-               std::ofstream::out | std::ofstream::app);
+   bitmap.open(name.str().c_str(), mode);
+
+   // If rewriting is set, find the offset first
+   if (!(mode & std::ofstream::app)) {
+      uint32_t size_bytes = (size % 8) ? (size/8 + 1) : (size/8);
+      bitmap.seekp(index * size_bytes);
+   }
 
    for (uint64_t i = 0; i < size;) {
       uint8_t byte = 0;
@@ -299,7 +302,7 @@ int main(int argc, char **argv)
    int interval = 300, window = 100;
    bool print_progress = false;
    int granularity = 8;
-   int ip_version = 4;
+   int ip_version = 4; // by default, primarily to be deduced from input IPs
    IPaddr_cpp range[2];
    bool rflag = false;
    std::string filename = "bitmap";
@@ -330,13 +333,6 @@ int main(int argc, char **argv)
             break;
          case 'g':
             granularity = atoi(optarg);
-            break;
-         case 'V':
-            ip_version = atoi(optarg);
-            if ((ip_version != 4) && (ip_version != 6)) {
-               fprintf(stderr, "Error: IP version - bad format.\n");
-               return 1;
-            }
             break;
          case 'r':
             tmp_range.assign(optarg);
@@ -369,28 +365,18 @@ int main(int argc, char **argv)
       NMCM_PROGRESS_INIT(interval, return 1);
    }
 
-   // Check netmask
-   if (((ip_version == 4) && (granularity > IPV4_BITS)) ||
-       ((ip_version == 6) && (granularity > IPV6_BITS))) {
-      fprintf(stderr, "Error: Granularity - IPv%d netmask value cannot be greater than %d.\n",
-              ip_version, ((ip_version == 4) ? IPV4_BITS : IPV6_BITS));
-      return 1;
-   }
-
-   // If no range entered, used the entire range at /8 by default
+   // If no range entered, used the entire range of IPv4 at /8 by default
    if (!rflag) {
       range[FIRST_ADDR].fromString("0.0.0.0");
       range[LAST_ADDR].fromString("255.0.0.0");
    } else {
-
-      // Check if IPs are valid
-      if (((ip_version == 4) && (!range[FIRST_ADDR].is_ipv4() ||
-                                 !range[LAST_ADDR].is_ipv4())) ||
-          ((ip_version == 6) && (!range[FIRST_ADDR].is_ipv6() ||
-                                 !range[LAST_ADDR].is_ipv6()))) {
-
-         fprintf(stderr, "Error: IPv%ds inserted as range are not valid.\n",
-                 ip_version);
+      // Deduce IP version
+      if (range[FIRST_ADDR].is_ipv4() && range[LAST_ADDR].is_ipv4()) {
+         ip_version = 4;
+      } else if (range[FIRST_ADDR].is_ipv6() && range[LAST_ADDR].is_ipv6()) {
+         ip_version = 6;
+      } else {
+         fprintf(stderr, "Error: Range does not contain two valid IPs of the same version.\n");
          return 1;
       }
 
@@ -401,6 +387,14 @@ int main(int argc, char **argv)
       }
    }
 
+
+   // Check netmask
+   if (((ip_version == 4) && (granularity > IPV4_BITS)) ||
+       ((ip_version == 6) && (granularity > IPV6_BITS))) {
+      fprintf(stderr, "Error: Granularity - IPv%d netmask value cannot be greater than %d.\n",
+              ip_version, ((ip_version == 4) ? IPV4_BITS : IPV6_BITS));
+      return 1;
+   }
    // Get time
    //std::time_t start_time = std::time(NULL);
    //struct tm* time_struct = localtime(&start_time);
@@ -442,7 +436,7 @@ int main(int argc, char **argv)
 
    // Create bitmap files
    std::ofstream bitmap;
-   std::string suffix[3] = {"_i.bmap", "_o.bmap", "_io.bmap"};
+   std::string suffix[3] = {"_s.bmap", "_d.bmap", "_sd.bmap"};
    std::ostringstream name;
    name.str("");
 
@@ -464,17 +458,25 @@ int main(int argc, char **argv)
    // Get size of bit vector
    uint32_t vector_size = ip_substraction(range[FIRST_ADDR], range[LAST_ADDR]);
 
-   if (vector_size == 0) {
-      fprintf(stderr, "Error: Address space is too big - maximum is 2^32.\n");
+   if ((vector_size == 0) || vector_size > 1000) {
+      fprintf(stderr, "Error: Address space must be between 1 and 1000 subnets.\n");
       return 1;
+   }
+
+   std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
+
+   // Fill all 3 bitmaps with zeros (vector_size x window)
+   for (int i = 0; i < 3; i++) {
+      for (int k = 0; k < window; k++) {
+         binary_write(filename + suffix[i], bits[i], (std::ofstream::out | std::ofstream::app), k);
+      }
    }
 
    // Start the alarm
    signal(SIGALRM, IPactivity_signal_handler);
    alarm(interval);
 
-   std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
-   int intervals = 0;
+   int intervals = 0; // it is a number mod time window
 
    /** Main loop */
    while (!stop) {
@@ -489,7 +491,7 @@ int main(int argc, char **argv)
 
       // Check SRC and DST IP
       for (int i = 0; i < 2; i++) {
-         if (i == IN) {
+         if (i == SRC) {
             ip.set_IP(&ur_get(tmplt, rec, F_SRC_IP), true);
          } else {
             ip.set_IP(&ur_get(tmplt, rec, F_DST_IP), true);
@@ -510,7 +512,7 @@ int main(int argc, char **argv)
 
                // Set bit in vector (would condition that it is 0 make it any faster?)
                bits[i][index] = 1;
-               bits[INOUT][index] = 1;
+               bits[SRC_DST][index] = 1;
             
             }
          }
@@ -520,11 +522,12 @@ int main(int argc, char **argv)
       if (save_vectors) {
          /** TODO time window */
          for (int i = 0; i < 3; i++) {
-            binary_write(filename + suffix[i], bits[i]);
+            binary_write(filename + suffix[i], bits[i], std::ofstream::out, intervals);
+            bits[i].assign(bits[i].size(), 0);
          }
          
          save_vectors = false;
-         intervals ++;
+         intervals = (intervals + 1) % window;
          alarm(interval);
       }
 
@@ -532,8 +535,7 @@ int main(int argc, char **argv)
 
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
-      binary_write(filename + suffix[i], bits[i]);
-      intervals++;
+      binary_write(filename + suffix[i], bits[i], std::ofstream::out, intervals);
    }
    
    /* Cleanup */
