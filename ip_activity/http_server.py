@@ -51,6 +51,8 @@ import ipaddress
 import logging
 import math
 import os
+from PIL import Image
+import struct
 import yaml # pyyaml
 import sys
 
@@ -76,7 +78,7 @@ def create_request_handler(args):
       with open(args['config'], 'r') as fd:
          config_file = yaml.load(fd.read())
    except IOError:
-      print('File ' + args['config'] + ' could not be opened.')
+      print('File ' + args['config'] + ' could not be opened.', file=sys.stderr)
       sys.exit(1)
 
    # Check if node with filename exists:
@@ -112,7 +114,7 @@ def create_request_handler(args):
    shifted_last = ipaddress.ip_address((int(last_ipaddr) >> (ip_size - ip_granularity)))
 
    # Get vector size
-   vector_size = int(shifted_first) - int(shifted_last)
+   vector_size = int(shifted_last) - int(shifted_first)
 
    # Get time window
    window = int(config_file[args['filename']]['time']['intervals'])
@@ -120,7 +122,7 @@ def create_request_handler(args):
    # Create empty bitmaps
    bitmap_src = {}
    for i in range(vector_size):
-      bitmap_s[i] = bitarray()
+      bitmap_src[i] = bitarray()
 
    bitmap_dst = {}
    for i in range(vector_size):
@@ -158,7 +160,7 @@ def create_request_handler(args):
          ''' Returns 2D bitarray of updated, transposed bitmap '''
 
          filesize = os.path.getsize(filename)
-         rows = filesize / byte_vector_size
+         rows = int(filesize / self.byte_vector_size)
 
          # Temporary bitmap for rows vectors
          tmp_bitmap = {}
@@ -171,36 +173,68 @@ def create_request_handler(args):
          try:
             with open(filename, 'rb') as fd:
                for r in range(rows):
-                     byte_vector = fd.read(byte_vector_size)
-                     tmp_bitmap[r].frombytes(byte_vector)
+                  byte_vector = fd.read(self.byte_vector_size)
+                  tmp_bitmap[r].frombytes(byte_vector)
 
          except IOError:
             print('File ' + args['config'] + ' could not be opened.')
             sys.exit(1)
 
          # Remove padding from the end of the vector if needed
-         trim_size = 8-(bit_vector_size % 8)
+         trim_size = 8-(self.bit_vector_size % 8)
          if trim_size < 8:
             for r in range(rows):
-               tmp_bitmap[r] = tmp_bitmap[r][:-trim]
+               tmp_bitmap[r] = tmp_bitmap[r][:-trim_size]
+
+         #for r in range(rows):
+         #   print(tmp_bitmap[r])
+         
 
          # Transpose bitmap
          # 1 row == 1 IP in all intervals
          transp_bitmap = {}
-         for i in range(bit_vector_size):
+
+         for i in range(self.bit_vector_size):
             transp_bitmap[i] = bitarray()
 
          # Go through intervals in tmp_bitmap, append to transposed
          for r in range(rows):
-            for b in range(bit_vector_size):
+            for b in range(self.bit_vector_size):
                transp_bitmap[b].append(tmp_bitmap[r][b])
 
+         #for b in range(self.bit_vector_size):
+         #   print(transp_bitmap[b])
+
          return transp_bitmap
-   
+
+      def create_image(self, bitmap, filename):
+         ''' Create black and white image from bitmap '''
+         # http://stackoverflow.com/questions/5672756/binary-list-to-png-in-python
+
+         # Size of the image:
+         # height = address space, width = intervals in bitmap
+         height = len(list(bitmap))
+         width = len(bitmap[0])
+
+         # Save bitmap to buffer
+         img_buffer = []
+         for r in range(height):
+            for b in range(width):
+               img_buffer.append(bitmap[r][b])
+
+         # Create image
+         img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
+         image = Image.frombuffer('L', (width, height), img_data)
+         image.save(filename + '.png')
+         return
+
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
 
          print('GET ' + self.path)
+
+         #my_bitmap = self.binary_read(args['filename'] + '_d.bmap')
+         #self.create_image(my_bitmap, "image_d")
    
          # Parse URL arguments
          index = self.path.find('?')
