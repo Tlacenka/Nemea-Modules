@@ -243,7 +243,7 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
 void binary_write(std::string filename, std::vector<bool> bits,
                   std::ios_base::openmode mode, uint32_t index)
 {
-   std::ofstream bitmap;
+   std::fstream bitmap;
    uint32_t size = bits.size();
    std::ostringstream name;
    name << filename;
@@ -253,7 +253,7 @@ void binary_write(std::string filename, std::vector<bool> bits,
    // If rewriting is set, find the offset first
    if (!(mode & std::ofstream::app)) {
       uint32_t size_bytes = (size % 8) ? (size/8 + 1) : (size/8);
-      bitmap.seekp(index * size_bytes);
+      bitmap.seekp(index * size_bytes, std::ios_base::beg);
    }
 
    for (uint64_t i = 0; i < size;) {
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
     fout.close();
 
    // Create bitmap files
-   std::ofstream bitmap;
+   std::fstream bitmap;
    std::string suffix[3] = {"_s.bmap", "_d.bmap", "_sd.bmap"};
    std::ostringstream name;
    name.str("");
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
    for (int i = 0; i < 3; i++) {
       name << filename << suffix[i];
       bitmap.open(name.str().c_str(),
-                      std::ofstream::out | std::ofstream::trunc);
+                      std::ios_base::out | std::ios_base::trunc);
       bitmap.close();
       name.str("");
    }
@@ -466,7 +466,8 @@ int main(int argc, char **argv)
 
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
    bool rewrite = false;
-   std::ios_base::openmode mode = std::ofstream::out | std::ofstream::app;
+   std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
+                                  std::ios_base::in | std::ios_base::app;
 
    // Start the alarm
    signal(SIGALRM, IPactivity_signal_handler);
@@ -524,20 +525,19 @@ int main(int argc, char **argv)
          // When the buffer is full, turn off appending
          /** Find out if offset without append would do */
          if (!rewrite) {
-            std::cout << intervals;
             if ((intervals + 1) == window) {
                rewrite = true;
-               mode = mode & (~(std::ofstream::app));
+               mode = mode & (~(std::ios_base::app));
             }
          }
-
+         //std::cout << intervals;
          save_vectors = false;
          intervals = (intervals + 1) % window;
          alarm(interval);
       }
 
    }
-
+   //std::cout << intervals;
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
       binary_write(filename + suffix[i], bits[i], mode, intervals);
