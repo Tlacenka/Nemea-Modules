@@ -260,7 +260,7 @@ void binary_write(std::string filename, std::vector<bool> bits,
       uint8_t byte = 0;
 
       // Store each 8 bits to byte
-      for (uint8_t mask = 1; (mask > 0) && (i < size); i++, mask <<= 1) {
+      for (uint8_t mask = 128; (mask > 0) && (i < size); i++, mask >>= 1) {
          if (bits[i]) {
                 byte |= mask;
          }
@@ -271,7 +271,6 @@ void binary_write(std::string filename, std::vector<bool> bits,
    }
 
    bitmap.close();
-
    return;
 }
 
