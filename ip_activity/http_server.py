@@ -46,6 +46,7 @@ from __future__ import print_function, division, with_statement
 
 import argparse
 from bitarray import bitarray
+from bs4 import BeautifulSoup # https://www.crummy.com/software/BeautifulSoup/
 import cgi
 import ipaddress
 import logging
@@ -158,6 +159,7 @@ def create_request_handler(args):
 
       def binary_read(self, filename):
          ''' Returns 2D bitarray of updated, transposed bitmap '''
+         # xxd [[-b] bitmap_name
 
          filesize = os.path.getsize(filename)
          rows = int(filesize / self.byte_vector_size)
@@ -250,35 +252,50 @@ def create_request_handler(args):
    
          print('PATH ' + self.path)
 
-         if self.path == "/":
-
-            self.send_response(200)  # OK
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+         if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
             try:
-               with open(args['dir'] + self.path + 'frontend.html', 'r') as fd:
+               with open(args['dir'] + '/frontend.html', 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
 
-                  self.wfile.write(fd.read())
+                  html_file = BeautifulSoup(fd.read(), 'html.parser')
+                  html_node = html_file.find('div', attrs={'id':'bitmap_inner'})
+                  new_node = html_file.new_tag('img', src='image_d.png')
+                  html_node.append(new_node)
+                  self.wfile.write(html_file)
+                  
             except IOError:
                print('File ' + args['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
 
          else:
-            self.send_response(200)  # OK
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+
+            # Detect type
+            if self.path.endswith(".html"):
+               content_type='text/html'
+            elif self.path.endswith(".png"):
+               content_type='image/png'
+            elif self.path.endswith(".js"):
+               content_type='application/javascript'
+            elif self.path.endswith(".css"):
+               content_type='text/css'
+            else:
+               print("Path " + self.path + " was not recognized.", file=sys.stderr)
+               self.send_response(404)
+               sys.exit(1)
+               # here will be special GET requests
+
+            # Send appropriate file
             try:
                with open(args['dir'] + self.path, 'r') as fd:
                   self.send_response(200)
-                  self.send_header('Content-type', 'text/html')
+                  self.send_header('Content-type', content_type)
                   self.end_headers()
-
                   self.wfile.write(fd.read())
+
             except IOError:
                print('File ' + args['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
