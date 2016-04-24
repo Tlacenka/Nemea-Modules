@@ -232,25 +232,8 @@ def create_request_handler(args):
 
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
-
-         print('GET ' + self.path)
-
          #my_bitmap = self.binary_read(args['filename'] + '_d.bmap')
          #self.create_image(my_bitmap, "image_d")
-   
-         # Parse URL arguments
-         index = self.path.find('?')
-   
-         if index >= 0:
-            get_path = self.path[:index]
-            query = cgi.parse_qs(self.path[index+1:])
-   
-         # Print out logging information about the path and args.
-         if 'content-type' in self.headers:
-            ctype, _ = cgi.parse_header(self.headers['content-type'])
-            print('TYPE ' + ctype)
-   
-         print('PATH ' + self.path)
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
@@ -260,10 +243,14 @@ def create_request_handler(args):
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
 
+                  # Find block for image
                   html_file = BeautifulSoup(fd.read(), 'html.parser')
                   html_node = html_file.find('div', attrs={'id':'bitmap_inner'})
+
+                  # Insert image
                   new_node = html_file.new_tag('img', src='image_d.png')
                   html_node.append(new_node)
+
                   self.wfile.write(html_file)
                   
             except IOError:
@@ -272,6 +259,22 @@ def create_request_handler(args):
                sys.exit(1)
 
          else:
+            print('GET ' + self.path)
+
+
+            # Parse URL arguments
+            index = self.path.find('?')
+   
+            if index >= 0:
+               get_path = self.path[:index]
+               query = cgi.parse_qs(self.path[index+1:])
+
+            # Print out logging information about the path and args.
+            if 'content-type' in self.headers:
+               ctype, _ = cgi.parse_header(self.headers['content-type'])
+               print('TYPE ' + ctype)
+
+            print('PATH ' + self.path)
 
             # Detect type
             if self.path.endswith(".html"):

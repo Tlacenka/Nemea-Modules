@@ -133,6 +133,7 @@ h1 {
 
 #origin #bitmap_type li.chosen_type {
    background-color: CornFlowerBlue;
+   box-shadow: 0px -1px 1px DarkBlue inset;
 }
 
 #origin #bitmap_type li {
