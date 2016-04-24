@@ -5,7 +5,7 @@
  * Date: 2016
  */
 
-body {
+html,body {
    margin: 0;
    padding: 0;
    font-family: Arial, sans-serif;
@@ -13,14 +13,17 @@ body {
    line-height: 1.2;
 }
 
-#header div.wrapper, #main div.wrapper, #introduction div.wrapper {
-   max-width: 95%;
-   width: 1100px;
-   margin-left: auto;
-   margin-right: auto;
+h1 {
+   font-size: 150%;
+   color: white;
 }
 
-/* Header */
+#page {
+   position: relative;
+   min-height: 100%;
+}
+
+/* Sections */
 #header {
    background: DimGray;
    overflow: hidden;
@@ -28,83 +31,33 @@ body {
    position: fixed;
    top: 0;
    left: 0;
-   height: 70px;
+   padding-left: 20px;
+   height: 50px;
    width: 100%;
 }
 
-#header h1 {
-   position: relative;
-   left: 0;
-   overflow: hidden;
-   display: inline-block;
+#header.wrapper {
+  height: 50px;
 }
 
-#header ul {
-   position: fixed;
-   top: 0px;
-   right: 0px;
-   float: right;
-   z-index: 1;
-   height: 70px;
-   margin: 0;
-}
-
-#header li.btn {
-   display: inline-block;
-   float: left;
-   background-color: CornFlowerBlue;
-   padding: 0px 20px 0px 20px;
-   border: 1px solid black;
-   appearance: button;
-}
-
-#header li a {
-   color: white;
-   text-decoration: none;
-   line-height: 69px;
-   margin: 0;
-   font-weight: bold;
-}
-
-#header li.btn:hover {
-   background-color: RoyalBlue;
-}
-
-#main, #introduction {
-   margin-top: 70px;
+#main {
+   margin: 50px auto;
+   width: 900px;
    overflow: hidden;
 }
 
-#origin {
-   float:left;
-   width: 49%;
-   border: 1px dashed black;
+#origin div.wrapper, #selected div.wrapper {
+   max-width: 95%;
+   margin: auto;
 }
 
-#origin div.bitmap {
-   margin: 0;
+#origin, #selected {
+   /*float: left;
+   width: calc(50% - 1px);*/
+   overflow: hidden;
+   border-bottom: 1px solid black;
+   padding-bottom: 50px;
 }
-
-#origin ul {
-   margin: 0;
-}
-
-#origin li {
-   display: inline-block;
-   border: 1px solid RoyalBlue;
-   background-color: SkyBlue;
-   padding: 10px;
-   margin: 0;
-}
-
-#selected {
-   float: right;
-   width: 49%;
-   border: 1px dashed black;
-}
-
-
-/* Footer */
 
 #footer {
    background: DimGray;
@@ -114,6 +67,98 @@ body {
    bottom: 0px;
    width: 100%;
 }
+
+/* Header */
+#header h1 {
+   margin-top: 15px;
+   overflow: hidden;
+}
+
+#header ul {
+   position: fixed;
+   top: 0px;
+   right: 0px;
+   float: right;
+   z-index: 1;
+   height: 50px;
+   margin: 0;
+}
+
+#header li.btn {
+   display: inline-block;
+   float: left;
+   background-color: CornFlowerBlue;
+   padding: 0px 10px 0px 10px;
+   border: 1px solid black;
+   appearance: button;
+   border-radius: 5px;
+   box-shadow: 5px 5px 10px RoyalBlue inset;
+}
+
+#header li a {
+   color: white;
+   text-decoration: none;
+   line-height: 49px;
+   margin: 0;
+   font-weight: bold;
+}
+
+#header li.btn:hover {
+   background-color: RoyalBlue;
+}
+
+/* Bitmaps */
+
+#origin ul {
+   margin: 0;
+   padding: 0;
+   overflow: hidden;
+}
+
+#origin h3 {
+   float: left;
+   display: inline-block;
+   padding-right: 20px;
+}
+
+#origin #options li {
+   float: left;
+   display: block;
+   border: 1px solid RoyalBlue;
+   padding: 10px;
+   margin: 0;
+   overflow: hidden;
+}
+
+
+#origin #bitmap_type li.chosen_type {
+   background-color: CornFlowerBlue;
+}
+
+#origin #bitmap_type li {
+   float: left;
+   display: block;
+   border: solid LightSlateGray;
+   border-width: 1px 1px 0px 1px; 
+   padding: 10px;
+   margin: 0;
+   border-radius: 5px 5px 0px 0px;
+   background-color: LightBlue;
+}
+
+#origin #bitmap_outer {
+   padding-top: 20px;
+}
+
+#origin #bitmap_inner {
+   width: 500px;
+   height: 200px;
+   border: 1px solid LightSlateGray;
+   background: LightGray;
+   border-radius: 0px 10px 10px 10px;
+}
+
+/* Footer */
 
 #footer a {
    color: LightSteelBlue;
