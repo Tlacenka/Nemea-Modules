@@ -111,9 +111,9 @@ def create_request_handler(args):
    ip_granularity = int(config_file[args['filename']]['addresses']['granularity'])
 
    # Adjust IPs to granularity
-   ip_size = first_ipaddr.max_prefixlen
-   shifted_first = ipaddress.ip_address((int(first_ipaddr) >> (ip_size - ip_granularity)))
-   shifted_last = ipaddress.ip_address((int(last_ipaddr) >> (ip_size - ip_granularity)))
+   ipaddr_size = first_ipaddr.max_prefixlen
+   shifted_first = ipaddress.ip_address((int(first_ipaddr) >> (ipaddr_size - ip_granularity)))
+   shifted_last = ipaddress.ip_address((int(last_ipaddr) >> (ipaddr_size - ip_granularity)))
 
    # Get vector size
    vector_size = int(shifted_last) - int(shifted_first)
@@ -130,6 +130,7 @@ def create_request_handler(args):
       # IPs + subnet size
       first_ip = first_ipaddr
       last_ip = last_ipaddr
+      ip_size = ipaddr_size
       granularity = ip_granularity
 
       # Size of bit vectors (rows) in file [b]
@@ -263,6 +264,31 @@ def create_request_handler(args):
                   my_bitmap = self.binary_read(self.arguments['filename'] +
                                                '_' + bmap_type + '.bmap')
                   self.create_image(my_bitmap, 'image_' + bmap_type)
+
+               # If IP index is required
+               if (('calculate_index' in query) and ('first_ip' in query) and
+                   ('index' in query) and ('granularity' in query)):
+
+                  # Get IPs and subnet
+                  tmp_ip = None
+                  if sys.version_info[0] == 2:
+                     tmp_ip = ipaddress.ip_address(unicode(query['first_ip'][0], "utf-8"))
+                  else:
+                     tmp_ip = ipaddress.ip_address(query['first_ip'][0])
+
+                  tmp_granularity = int(query['granularity'][0])
+
+                  # Add index
+                  tmp_ip = ipaddress.ip_address((int(tmp_ip) >> (self.ip_size - tmp_granularity)))
+                  tmp_ip += int(query['index'][0])
+                  tmp_ip = ipaddress.ip_address((int(tmp_ip) << (self.ip_size - tmp_granularity)))
+
+                  # Send needed information
+                  self.send_response(200)
+                  self.send_header('Content-type', 'text/plain')
+                  self.send_header('IP_index', str(tmp_ip))
+                  self.end_headers()
+                  return
 
 
             # Print out logging information about the path and args.

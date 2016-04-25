@@ -11,6 +11,9 @@ $(document).ready(function() {
    // Start updating - immediately or after timeout?
    var timeout_handler = auto_update();
 
+   // IP index for later use
+   var index = "";
+
    // When changing bitmap type, get new bitmap, update CSS
    $("#bitmap_type li").click(function() {
 
@@ -30,7 +33,8 @@ $(document).ready(function() {
    // Call update every interval
    function auto_update() {
       update_bitmap();
-      timeout_handler = setTimeout(auto_update, 5000);
+      var interval = parseInt($('td.time_interval').html().split(" ")[0])*1000;
+      timeout_handler = setTimeout(auto_update, interval);
    }
 
    // Update bitmap by sending GET request
@@ -46,7 +50,7 @@ $(document).ready(function() {
          suffix = "_s.png";
       } else if (value === "Destination IPs") {
          suffix = "_d.png";
-      } else {
+      } else if (value === "Both Directions") {
          suffix = "_sd.png";
       }
 
@@ -98,6 +102,11 @@ $(document).ready(function() {
       });
    }
 
+   // Set IP index
+   function set_ip_index(http_request) {
+      index = http_request.getResponseHeader("IP_index");
+   }
+
 
    // Show parameters for each pair of coordinates - images with class 'hover_coords'
    // http://jsfiddle.net/pSVXz/12/
@@ -106,9 +115,15 @@ $(document).ready(function() {
       var x = parseInt(event.pageX - $(this).position().left);
       var y = parseInt(event.pageY - $(this).position().top - 50);
 
-      // AJAX GET request for offset values
+      var arguments = "calculate_index=true&first_ip=" +
+                      $('td.range').html().split(" ")[0] + "&index=" +
+                      y + "&granularity=" + 
+                      $('td.subnet_size').html().slice("1");
 
-      $('#display_coords').html(x + ', ' + y).css({
+      // AJAX GET request for IP index
+      http_GET("", set_ip_index, arguments);
+
+      $('#display_coords').html(x + ', ' + index).css({
          "position" : "absolute",
          "left": event.pageX + 20,
          "top": event.pageY - 90
@@ -119,6 +134,8 @@ $(document).ready(function() {
    $(document).on('mouseleave', 'img.hover_coords', function() {
       $('#display_coords').hide();
    });
+
+   
 
 });
 
