@@ -101,22 +101,17 @@ $(document).ready(function() {
 
    // Show parameters for each pair of coordinates - images with class 'hover_coords'
    // http://jsfiddle.net/pSVXz/12/
-   $('<div id="display_coords"></div>').appendTo('body')[0];
-   $('#display_coords').css({"z-index": "1"});
 
    $(document).on('mousemove', 'img.hover_coords', function(event) {
-      var x = event.pageX - $(this).position().left;
+      var x = parseInt(event.pageX - $(this).position().left);
       var y = parseInt(event.pageY - $(this).position().top - 50);
 
       // AJAX GET request for offset values
 
       $('#display_coords').html(x + ', ' + y).css({
-         "background" : "LightSlateGray",
-         "border" : "1px solid gray",
-         "color" : "white",
          "position" : "absolute",
          "left": event.pageX + 20,
-         "top": event.pageY - 30
+         "top": event.pageY - 90
       }).show();
    });
 

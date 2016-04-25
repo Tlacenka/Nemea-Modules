@@ -13,6 +13,11 @@ html,body {
    line-height: 1.2;
 }
 
+li:hover {
+   cursor: pointer;
+   cursor: hand;
+}
+
 h1 {
    font-size: 150%;
    color: white;
@@ -25,7 +30,7 @@ h1 {
 
 /* Sections */
 #header {
-   background: DimGray;
+   background: #556677;
    overflow: hidden;
    border-bottom: 1px solid black;
    position: fixed;
@@ -41,7 +46,7 @@ h1 {
 }
 
 #main {
-   margin: 50px auto;
+   margin: 50px auto 0px;
    width: 900px;
    overflow: hidden;
 }
@@ -60,7 +65,7 @@ h1 {
 }
 
 #footer {
-   background: DimGray;
+   background: #556677;
    overflow: hidden;
    border-top: 1px solid black;
    position: absolute;
@@ -85,14 +90,14 @@ h1 {
 }
 
 #header li.btn {
-   display: inline-block;
+   display: block;
    float: left;
-   background-color: CornFlowerBlue;
+   background-color: #68A4D6;
    padding: 0px 10px 0px 10px;
    border: 1px solid black;
    appearance: button;
    border-radius: 5px;
-   box-shadow: 5px 5px 10px RoyalBlue inset;
+   box-shadow: 5px 5px 8px SteelBlue inset;
 }
 
 #header li a {
@@ -104,7 +109,7 @@ h1 {
 }
 
 #header li.btn:hover {
-   background-color: RoyalBlue;
+   background-color: SteelBlue;
 }
 
 /* Bitmaps */
@@ -116,24 +121,51 @@ h1 {
 }
 
 #origin h3 {
-   float: left;
    display: inline-block;
-   padding-right: 20px;
+}
+
+.bitmap_table {
+   margin: 0;
+   padding: 0;
+   border-collapse: collapse;
+}
+
+.bitmap_table th {
+   background: LightSlateGray;
+   padding: 5px;
+   margin: 0;
+   border: 1px solid black;
+   text-align: left;
+   color: white;
+}
+
+.bitmap_table td {
+   border: 1px solid black;
+   text-align: left;
+   min-width: 100px;
+   text-align: center;
+   padding: 5px;
+   margin: 0;
+}
+
+div.floatable {
+   float: left;
+   width: 50%;
 }
 
 #origin #options li {
    float: left;
    display: block;
-   border: 1px solid RoyalBlue;
+   border: 1px solid DarkSlateGray;
    padding: 10px;
    margin: 0;
    overflow: hidden;
 }
 
-
 #origin #bitmap_type li.chosen_type {
-   background-color: CornFlowerBlue;
-   box-shadow: 0px -1px 1px DarkBlue inset;
+   background-color: LightSlateGray;
+   color: white;
+   box-shadow: 0px -1px 1px DarkSlateGray inset;
 }
 
 #origin #bitmap_type li {
@@ -144,11 +176,12 @@ h1 {
    padding: 10px;
    margin: 0;
    border-radius: 5px 5px 0px 0px;
-   background-color: LightBlue;
+   background-color: LightSteelBlue;
 }
 
 #origin #bitmap_outer {
    padding-top: 20px;
+   clear: both;
 }
 
 #origin #bitmap_inner {
@@ -184,4 +217,13 @@ h1 {
    float: right;
    margin: auto;
    margin-right: 10px;
+}
+
+#display_coords {
+   z-index: 1;
+   background: LightSlateGray;
+   border : 1px solid gray;
+   color : white;
+   padding : 5px;
+   display : none;
 }

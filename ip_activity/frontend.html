@@ -51,14 +51,31 @@
          accumsan leo. </p>
 
          <!-- Options -->
-         <div class="bitmap_options">
-            <h3> Options: </h3>
+         <div class="bitmap_stats floatable">
+            <h3> Characteristics </h3>
+            <table class="bitmap_table">
+               <tr>
+                  <th> Granularity </th>
+                  <td class="subnet_size"></td>
+               </tr>
+               <tr>
+                  <th> Range </th>
+                  <td class="range"> </td>
+               </tr>
+               <tr>
+                  <th> Time interval </th>
+                  <td class="time_interval"></td>
+               <tr>
+                  <th> Time window </th>
+                  <td class="time_window"></td>
+               </tr>
+            </table>
+         </div>
+   
+         <div class="bitmap_options floatable">
+            <h3> Options </h3>
             <ul id="options">
-               <li> Zoom
-                  <ul>
-                     <li> + </li>
-                     <li> - </li>
-                  </ul> </li>
+               <li> Granularity </li>
                <li> Select area </li>
                <li> Restore Default </li>
             </ul>
@@ -86,6 +103,8 @@
 
 </div>
 </section>
+
+<div id="display_coords"></div>
 
 <!-- Footer -->
 <footer id="footer">

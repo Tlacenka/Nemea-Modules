@@ -222,13 +222,17 @@ def create_request_handler(args):
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
 
-                  # Find block for image
+                  # Find block for characteristics
                   html_file = BeautifulSoup(fd.read(), 'html.parser')
-                  html_node = html_file.find('div', attrs={'id':'bitmap_inner'})
 
-                  # Insert image
-                  new_node = html_file.new_tag('img', src='image_s.png')
-                  html_node.append(new_node)
+                  # Insert characteristics
+                  html_file.find('td', 'subnet_size').append("/" + str(self.granularity))
+                  html_file.find('td', 'range').append(str(self.first_ip) + " - " + str(self.last_ip))
+                  html_file.find('td', 'time_interval').append(str(self.time_interval) + " seconds")
+                  html_file.find('td', 'time_window').append(str(self.time_window) + " intervals")
+
+                  #new_node = html_file.new_tag('td', src='image_s.png')
+                  #html_node.append(new_node)
 
                   self.wfile.write(html_file)
                   
