@@ -54,6 +54,7 @@ import logging
 import math
 import os
 from PIL import Image
+import signal
 import struct
 import yaml # pyyaml
 import sys
@@ -71,6 +72,9 @@ SRC = 0
 DST = 1
 SRC_DST = 2
 
+# SIGTERM
+def sigterm_handler(signal, frame):
+    sys.exit(0)
 
 def create_request_handler(args):
    ''' Creates class for handling requests, adds needed variables '''
@@ -258,7 +262,7 @@ def create_request_handler(args):
                self.path = self.path[:index]
 
                # If bitmap update required, update
-               if ('update' in query) and query['update']:
+               if 'update' in query:
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
                   my_bitmap = self.binary_read(self.arguments['filename'] +
@@ -368,6 +372,9 @@ def main():
    ip_activity_RequestHandler = create_request_handler(args)
 
    server = HTTPServer((args['hostname'], args['port']), ip_activity_RequestHandler)
+
+   # Set SIGTERM handler
+   signal.signal(signal.SIGTERM, sigterm_handler)
 
    print("Starting server")
 
