@@ -45,6 +45,7 @@
 from __future__ import print_function, division, with_statement
 
 import argparse
+import base64
 from bitarray import bitarray
 from bs4 import BeautifulSoup # https://www.crummy.com/software/BeautifulSoup/
 import cgi
@@ -120,19 +121,6 @@ def create_request_handler(args):
    # Get time window
    window = int(config_file[args['filename']]['time']['intervals'])
 
-   # Create empty bitmaps
-   bitmap_src = {}
-   for i in range(vector_size):
-      bitmap_src[i] = bitarray()
-
-   bitmap_dst = {}
-   for i in range(vector_size):
-      bitmap_dst[i] = bitarray()
-
-   bitmap_srcdst = {}
-   for i in range(vector_size):
-      bitmap_srcdst[i] = bitarray()
-
    # Create additional attributes and methods in handler
    class My_RequestHandler(BaseHTTPRequestHandler):
 
@@ -151,11 +139,6 @@ def create_request_handler(args):
       # Time unit and window size
       time_interval = int(config_file[args['filename']]['time']['granularity'])
       time_window = window
-      
-      # Bitmaps
-      bitmap_s = bitmap_src
-      bitmap_d = bitmap_dst
-      bitmap_sd = bitmap_srcdst
 
       def binary_read(self, filename):
          ''' Returns 2D bitarray of updated, transposed bitmap '''
@@ -188,10 +171,6 @@ def create_request_handler(args):
             for r in range(rows):
                tmp_bitmap[r] = tmp_bitmap[r][:-trim_size]
 
-         #for r in range(rows):
-         #   print(tmp_bitmap[r])
-         
-
          # Transpose bitmap
          # 1 row == 1 IP in all intervals
          transp_bitmap = {}
@@ -203,9 +182,6 @@ def create_request_handler(args):
          for r in range(rows):
             for b in range(self.bit_vector_size):
                transp_bitmap[b].append(tmp_bitmap[r][b])
-
-         #for b in range(self.bit_vector_size):
-         #   print(transp_bitmap[b])
 
          return transp_bitmap
 
@@ -224,7 +200,7 @@ def create_request_handler(args):
             for b in range(width):
                img_buffer.append(bitmap[r][b])
 
-         # Create image
+         # Create and save image
          img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
          image = Image.frombuffer('L', (width, height), img_data)
          image.save(filename + '.png')
@@ -232,11 +208,14 @@ def create_request_handler(args):
 
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
-         #my_bitmap = self.binary_read(arguments['filename'] + '_d.bmap')
-         #self.create_image(my_bitmap, "image_d")
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
+            # Load source bitmap
+            my_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
+            self.create_image(my_bitmap, "image_s")
+
+            # Open main HTML file
             try:
                with open(self.arguments['dir'] + '/frontend.html', 'r') as fd:
                   self.send_response(200)
@@ -258,6 +237,7 @@ def create_request_handler(args):
                self.send_response(404)
                sys.exit(1)
 
+         # Get rid of favicon requests
          elif self.path == '/favicon.ico':
             self.send_response(200)
             self.send_header('Content-type', 'image/x-icon')
@@ -266,43 +246,55 @@ def create_request_handler(args):
          else:
             print('GET ' + self.path)
 
-
             # Parse URL arguments
             index = self.path.find('?')
-   
             if index >= 0:
-               get_path = self.path[:index]
                query = cgi.parse_qs(self.path[index+1:])
+               self.path = self.path[:index]
+
+               # If bitmap update required, update
+               if ('update' in query) and query['update']:
+                  # Find out bitmap type (filename_<type>.bmap)
+                  bmap_type = self.path.split('_')[1].split('.')[0]
+                  my_bitmap = self.binary_read(self.arguments['filename'] +
+                                               '_' + bmap_type + '.bmap')
+                  self.create_image(my_bitmap, 'image_' + bmap_type)
+
 
             # Print out logging information about the path and args.
-            if 'content-type' in self.headers:
-               ctype, _ = cgi.parse_header(self.headers['content-type'])
-               print('TYPE ' + ctype)
-
+            #if 'content-type' in self.headers:
+            #   ctype, _ = cgi.parse_header(self.headers['content-type'])
+            #   print('TYPE ' + ctype)
             print('PATH ' + self.path)
+
+            open_mode = 'r'
 
             # Detect type
             if self.path.endswith(".html"):
-               content_type='text/html'
+               content_type = 'text/html'
             elif self.path.endswith(".png"):
-               content_type='image/png'
+               content_type = 'image/png'
+               open_mode = 'rb'
             elif self.path.endswith(".js"):
-               content_type='application/javascript'
+               content_type = 'application/javascript'
             elif self.path.endswith(".css"):
-               content_type='text/css'
+               content_type = 'text/css'
             else:
                print("Path " + self.path + " was not recognized.", file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
-               # here will be special GET requests
 
             # Send appropriate file
             try:
-               with open(self.arguments['dir'] + self.path, 'r') as fd:
+               with open(self.arguments['dir'] + self.path, open_mode) as fd:
                   self.send_response(200)
                   self.send_header('Content-type', content_type)
+                  #self.send_header('Content-URL', self.path)
                   self.end_headers()
-                  self.wfile.write(fd.read())
+                  if content_type == 'image/png':
+                     self.wfile.write(base64.b64encode(fd.read()))
+                  else:
+                     self.wfile.write(fd.read())
 
             except IOError:
                print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
