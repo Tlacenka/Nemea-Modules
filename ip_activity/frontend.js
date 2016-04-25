@@ -9,7 +9,7 @@
 $(document).ready(function() {
 
    // Start updating - immediately or after timeout?
-   var timeout_handler = setTimeout(auto_update, 5000);
+   var timeout_handler = auto_update();
 
    // When changing bitmap type, get new bitmap, update CSS
    $("#bitmap_type li").click(function() {
@@ -34,7 +34,7 @@ $(document).ready(function() {
    }
 
    // Update bitmap by sending GET request
-   function update_bitmap(arguments) {
+   function update_bitmap() {
       if (typeof(arguments)==='undefined') {
          arguments = "";
       }
@@ -52,7 +52,7 @@ $(document).ready(function() {
 
       // Filename to be added
       var image = "image" + suffix;
-      http_GET(image, set_bitmap);
+      http_GET(image, set_bitmap, 'update=true');
 
    }
 
@@ -89,44 +89,40 @@ $(document).ready(function() {
    // Set bitmap
    function set_bitmap(http_request)
    {
-      //alert("setting bitmap");
-      var response = http_request.responseText;
+      // Change image
+      $('#bitmap_inner img').remove();
+      $('#bitmap_inner').html('<img class="hover_coords" src="data:image/png;base64,' + http_request.responseText + '" />');
+      $('#bitmap_inner').css({
+         "height":  $('#bitmap_inner img').height() + 1,
+         "width":  $('#bitmap_inner img').width() + 1
+      });
    }
 
 
    // Show parameters for each pair of coordinates - images with class 'hover_coords'
    // http://jsfiddle.net/pSVXz/12/
-   var display_coords = $('<div id="display_coords"></div>').appendTo('body')[0];
+   $('<div id="display_coords"></div>').appendTo('body')[0];
+   $('#display_coords').css({"z-index": "1"});
 
-   $('img.hover_coords').each(function()
-   {
+   $(document).on('mousemove', 'img.hover_coords', function(event) {
+      var x = event.pageX - $(this).position().left;
+      var y = parseInt(event.pageY - $(this).position().top - 50);
 
-      // Get image stats 
-      var position = $(this).position();
-      var width = $(this).width();
-      var height = $(this).height();
-   
-      var top = position.top;
-      var left = position.left;
-   /*
-      // Calculate offset, display coordinates
-      $(this).mousemove(function(event) {
-         var x = event.clientX - left;
-         var y = event.clientY - top;
-   
-         // AJAX GET request for offset values
-   
-         $('#display_coords').text(x + ', ' + y).css({
-            left: event.clientX - 20;
-            top: event.clientY - 20;
-         }).show();
-      });
-   */
-      // When mouse is out of image boundaries, hide text
-      $(this).mouseleave(function() {
-         $('#display_coords'.hide());
-      });
+      // AJAX GET request for offset values
 
+      $('#display_coords').html(x + ', ' + y).css({
+         "background" : "LightSlateGray",
+         "border" : "1px solid gray",
+         "color" : "white",
+         "position" : "absolute",
+         "left": event.pageX + 20,
+         "top": event.pageY - 30
+      }).show();
+   });
+
+   // When mouse is out of image boundaries, hide text
+   $(document).on('mouseleave', 'img.hover_coords', function() {
+      $('#display_coords').hide();
    });
 
 });

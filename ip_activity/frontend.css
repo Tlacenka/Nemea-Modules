@@ -152,11 +152,12 @@ h1 {
 }
 
 #origin #bitmap_inner {
-   width: 500px;
-   height: 200px;
+   width: 10px;
+   height: 10px;
    border: 1px solid LightSlateGray;
    background: LightGray;
    border-radius: 0px 10px 10px 10px;
+   overflow: hidden;
 }
 
 /* Footer */
