@@ -8,6 +8,9 @@
 // Main function
 $(document).ready(function() {
 
+   // Start updating - immediately or after timeout?
+   var timeout_handler = setTimeout(auto_update, 5000);
+
    // When changing bitmap type, get new bitmap, update CSS
    $("#bitmap_type li").click(function() {
 
@@ -17,25 +20,41 @@ $(document).ready(function() {
          $('#bitmap_type li.chosen_type').removeClass();
          $(this).addClass('chosen_type');
 
-         // Update bitmap
-         var value = $(this).html();
-         var suffix = "";
-         if (value === "Source IPs") {
-            suffix = "_s.png";
-         } else if (value === "Destination IPs") {
-            suffix = "_d.png";
-         } else {
-            suffix = "_sd.png";
-         }
-
-         // Filename to be added
-         var image = "image" + suffix;
-         http_GET(image, set_bitmap);
-
+         // Update bitmap immediately
+         clearTimeout(timeout_handler);
+         auto_update();
       }
 
    });
 
+   // Call update every interval
+   function auto_update() {
+      update_bitmap();
+      timeout_handler = setTimeout(auto_update, 5000);
+   }
+
+   // Update bitmap by sending GET request
+   function update_bitmap(arguments) {
+      if (typeof(arguments)==='undefined') {
+         arguments = "";
+      }
+
+      var value = $('#bitmap_type li.chosen_type').html();
+
+      var suffix = "";
+      if (value === "Source IPs") {
+         suffix = "_s.png";
+      } else if (value === "Destination IPs") {
+         suffix = "_d.png";
+      } else {
+         suffix = "_sd.png";
+      }
+
+      // Filename to be added
+      var image = "image" + suffix;
+      http_GET(image, set_bitmap);
+
+   }
 
    // Universal function for all asynchronous GET requests
    function http_GET(url, callback, arguments, content_type)
@@ -108,7 +127,6 @@ $(document).ready(function() {
          $('#display_coords'.hide());
       });
 
-   
    });
 
 });

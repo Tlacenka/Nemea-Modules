@@ -179,7 +179,7 @@ def create_request_handler(args):
                   tmp_bitmap[r].frombytes(byte_vector)
 
          except IOError:
-            print('File ' + args['config'] + ' could not be opened.')
+            print('File ' + arguments['config'] + ' could not be opened.')
             sys.exit(1)
 
          # Remove padding from the end of the vector if needed
@@ -232,13 +232,13 @@ def create_request_handler(args):
 
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
-         #my_bitmap = self.binary_read(args['filename'] + '_d.bmap')
+         #my_bitmap = self.binary_read(arguments['filename'] + '_d.bmap')
          #self.create_image(my_bitmap, "image_d")
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
             try:
-               with open(args['dir'] + '/frontend.html', 'r') as fd:
+               with open(arguments['dir'] + '/frontend.html', 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
@@ -248,15 +248,20 @@ def create_request_handler(args):
                   html_node = html_file.find('div', attrs={'id':'bitmap_inner'})
 
                   # Insert image
-                  new_node = html_file.new_tag('img', src='image_d.png')
+                  new_node = html_file.new_tag('img', src=arguments['filename'] + '_s.png')
                   html_node.append(new_node)
 
                   self.wfile.write(html_file)
                   
             except IOError:
-               print('File ' + args['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               print('File ' + arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
+
+         elif self.path == '/favicon.ico':
+            self.send_response(200)
+            self.send_header('Content-type', 'image/x-icon')
+            self.end_headers()
 
          else:
             print('GET ' + self.path)
@@ -293,14 +298,14 @@ def create_request_handler(args):
 
             # Send appropriate file
             try:
-               with open(args['dir'] + self.path, 'r') as fd:
+               with open(arguments['dir'] + self.path, 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', content_type)
                   self.end_headers()
                   self.wfile.write(fd.read())
 
             except IOError:
-               print('File ' + args['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               print('File ' + arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
             
@@ -312,10 +317,6 @@ def main():
 
    # Parse arguments
    parser = argparse.ArgumentParser()
-   parser.add_argument('-i', '--input', action='store_true', help='Fetch input bitmap.')
-   parser.add_argument('-o', '--output', action='store_true', help='Fetch output bitmap.')
-   parser.add_argument('-b', '--bidirectional', action='store_true', help='Fetch bidirectional (io) bitmap.')
-   parser.add_argument('-a', '--all', action='store_true', help='Fetch all types of bitmaps.')
    parser.add_argument('-p', '--port', type=int, default=8080,
                        help='Server port, (8080 by default)')
    parser.add_argument('-H', '--hostname', type=str, default='localhost',
