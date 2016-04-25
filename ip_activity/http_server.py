@@ -179,7 +179,7 @@ def create_request_handler(args):
                   tmp_bitmap[r].frombytes(byte_vector)
 
          except IOError:
-            print('File ' + arguments['config'] + ' could not be opened.')
+            print('File ' + filename + ' could not be opened.')
             sys.exit(1)
 
          # Remove padding from the end of the vector if needed
@@ -238,7 +238,7 @@ def create_request_handler(args):
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
             try:
-               with open(arguments['dir'] + '/frontend.html', 'r') as fd:
+               with open(self.arguments['dir'] + '/frontend.html', 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
@@ -248,13 +248,13 @@ def create_request_handler(args):
                   html_node = html_file.find('div', attrs={'id':'bitmap_inner'})
 
                   # Insert image
-                  new_node = html_file.new_tag('img', src=arguments['filename'] + '_s.png')
+                  new_node = html_file.new_tag('img', src='image_s.png')
                   html_node.append(new_node)
 
                   self.wfile.write(html_file)
                   
             except IOError:
-               print('File ' + arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
 
@@ -298,14 +298,14 @@ def create_request_handler(args):
 
             # Send appropriate file
             try:
-               with open(arguments['dir'] + self.path, 'r') as fd:
+               with open(self.arguments['dir'] + self.path, 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', content_type)
                   self.end_headers()
                   self.wfile.write(fd.read())
 
             except IOError:
-               print('File ' + arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
             
