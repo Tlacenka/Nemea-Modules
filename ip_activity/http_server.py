@@ -72,12 +72,30 @@ SRC = 0
 DST = 1
 SRC_DST = 2
 
+# Global variables
+# IP variables
+g_first_ip = None
+g_last_ip = None
+g_ip_size = 0
+g_granularity = 0
+g_bit_vector_size = 0
+g_byte_vector_size = 0
+
+#Time variables
+g_time_interval = 0
+g_time_window = 0
+
+#Bitmaps
+g_bitmap = None
+
 # SIGTERM
 def sigterm_handler(signal, frame):
     sys.exit(0)
 
 def create_request_handler(args):
    ''' Creates class for handling requests, adds needed variables '''
+   global g_first_ip, g_last_ip, g_ip_size, g_granularity, g_bit_vector_size
+   global g_byte_vector_size, g_time_interval, g_time_window, g_bitmap
 
    # Read configuration file
    try:
@@ -99,58 +117,44 @@ def create_request_handler(args):
       print('Configuration file structure is invalid.', file=sys.stderr)
 
    # Get IPs
-   first_ipaddr = None
-   last_ipaddr = None
    if sys.version_info[0] == 2:
-      first_ipaddr = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['first'],
+      g_first_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['first'],
                                                   "utf-8"))
-      last_ipaddr = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['last'],
+      g_last_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['last'],
                                                  "utf-8"))
 
    else:
-      first_ipaddr = ipaddress.ip_address(config_file[args['filename']]['addresses']['first'])
+      g_first_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['first'])
 
-      last_ipaddr = ipaddress.ip_address(config_file[args['filename']]['addresses']['last'])
+      g_last_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['last'])
 
-   ip_granularity = int(config_file[args['filename']]['addresses']['granularity'])
+   g_granularity = int(config_file[args['filename']]['addresses']['granularity'])
 
    # Adjust IPs to granularity
-   ipaddr_size = first_ipaddr.max_prefixlen
-   shifted_first = ipaddress.ip_address((int(first_ipaddr) >> (ipaddr_size - ip_granularity)))
-   shifted_last = ipaddress.ip_address((int(last_ipaddr) >> (ipaddr_size - ip_granularity)))
+   g_ip_size = g_first_ip.max_prefixlen
+   shifted_first = ipaddress.ip_address((int(g_first_ip) >> (g_ip_size - g_granularity)))
+   shifted_last = ipaddress.ip_address((int(g_last_ip) >> (g_ip_size - g_granularity)))
 
    # Get vector size
-   vector_size = int(shifted_last) - int(shifted_first)
+   g_bit_vector_size = int(shifted_last) - int(shifted_first)
+   g_byte_vector_size = int(math.ceil(g_bit_vector_size / 8))
 
-   # Get time window
-   window = int(config_file[args['filename']]['time']['intervals'])
+   # Get time window and interval
+   g_time_window = int(config_file[args['filename']]['time']['intervals'])
+   g_time_interval = int(config_file[args['filename']]['time']['granularity'])
 
    # Create additional attributes and methods in handler
    class My_RequestHandler(BaseHTTPRequestHandler):
 
-      # Input information
-      arguments = args
-
-      # IPs + subnet size
-      first_ip = first_ipaddr
-      last_ip = last_ipaddr
-      ip_size = ipaddr_size
-      granularity = ip_granularity
-
-      # Size of bit vectors (rows) in file [b]
-      bit_vector_size = vector_size
-      byte_vector_size = int(math.ceil(bit_vector_size / 8))
-
-      # Time unit and window size
-      time_interval = int(config_file[args['filename']]['time']['granularity'])
-      time_window = window
+      arguments = args # Input information
 
       def binary_read(self, filename):
          ''' Returns 2D bitarray of updated, transposed bitmap '''
+         global g_byte_vector_size, g_bit_vector_size
          # xxd [[-b] bitmap_name
 
          filesize = os.path.getsize(filename)
-         rows = int(filesize / self.byte_vector_size)
+         rows = int(filesize / g_byte_vector_size)
 
          # Temporary bitmap for rows vectors
          tmp_bitmap = {}
@@ -163,7 +167,7 @@ def create_request_handler(args):
          try:
             with open(filename, 'rb') as fd:
                for r in range(rows):
-                  byte_vector = fd.read(self.byte_vector_size)
+                  byte_vector = fd.read(g_byte_vector_size)
                   tmp_bitmap[r].frombytes(byte_vector)
 
          except IOError:
@@ -171,7 +175,7 @@ def create_request_handler(args):
             sys.exit(1)
 
          # Remove padding from the end of the vector if needed
-         trim_size = 8-(self.bit_vector_size % 8)
+         trim_size = 8-(g_bit_vector_size % 8)
          if trim_size < 8:
             for r in range(rows):
                tmp_bitmap[r] = tmp_bitmap[r][:-trim_size]
@@ -180,12 +184,12 @@ def create_request_handler(args):
          # 1 row == 1 IP in all intervals
          transp_bitmap = {}
 
-         for i in range(self.bit_vector_size):
+         for i in range(g_bit_vector_size):
             transp_bitmap[i] = bitarray()
 
          # Go through intervals in tmp_bitmap, append to transposed
          for r in range(rows):
-            for b in range(self.bit_vector_size):
+            for b in range(g_bit_vector_size):
                transp_bitmap[b].append(tmp_bitmap[r][b])
 
          return transp_bitmap
@@ -213,12 +217,13 @@ def create_request_handler(args):
 
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
+         global g_granularity, g_first_ip, g_last_ip, g_time_interval, g_time_window, g_bitmap
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
             # Load source bitmap
-            my_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
-            self.create_image(my_bitmap, "image_s")
+            g_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
+            self.create_image(g_bitmap, "image_s")
 
             # Open main HTML file
             try:
@@ -231,10 +236,10 @@ def create_request_handler(args):
                   html_file = BeautifulSoup(fd.read(), 'html.parser')
 
                   # Insert characteristics
-                  html_file.find('td', 'subnet_size').append("/" + str(self.granularity))
-                  html_file.find('td', 'range').append(str(self.first_ip) + " - " + str(self.last_ip))
-                  html_file.find('td', 'time_interval').append(str(self.time_interval) + " seconds")
-                  html_file.find('td', 'time_window').append(str(self.time_window) + " intervals")
+                  html_file.find('td', 'subnet_size').append("/" + str(g_granularity))
+                  html_file.find('td', 'range').append(str(g_first_ip) + " - " + str(g_last_ip))
+                  html_file.find('td', 'time_interval').append(str(g_time_interval) + " seconds")
+                  html_file.find('td', 'time_window').append(str(g_time_window) + " intervals")
 
                   #new_node = html_file.new_tag('td', src='image_s.png')
                   #html_node.append(new_node)
@@ -256,6 +261,7 @@ def create_request_handler(args):
             print('GET ' + self.path)
 
             # Parse URL arguments
+            query = None
             index = self.path.find('?')
             if index >= 0:
                query = cgi.parse_qs(self.path[index+1:])
@@ -265,13 +271,13 @@ def create_request_handler(args):
                if 'update' in query:
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
-                  my_bitmap = self.binary_read(self.arguments['filename'] +
+                  g_bitmap = self.binary_read(self.arguments['filename'] +
                                                '_' + bmap_type + '.bmap')
-                  self.create_image(my_bitmap, 'image_' + bmap_type)
+                  self.create_image(g_bitmap, 'image_' + bmap_type)
 
                # If IP index is required
                if (('calculate_index' in query) and ('first_ip' in query) and
-                   ('index' in query) and ('granularity' in query)):
+                   ('ip' in query) and ('interval' in query) and ('granularity' in query)):
 
                   # Get IPs and subnet
                   tmp_ip = None
@@ -282,15 +288,23 @@ def create_request_handler(args):
 
                   tmp_granularity = int(query['granularity'][0])
 
-                  # Add index
-                  tmp_ip = ipaddress.ip_address((int(tmp_ip) >> (self.ip_size - tmp_granularity)))
-                  tmp_ip += int(query['index'][0])
-                  tmp_ip = ipaddress.ip_address((int(tmp_ip) << (self.ip_size - tmp_granularity)))
+                  # Get IP subnet at index
+                  tmp_ip = ipaddress.ip_address((int(tmp_ip) >> (g_ip_size - tmp_granularity)))
+                  tmp_ip += int(query['ip'][0])
+                  tmp_ip = ipaddress.ip_address((int(tmp_ip) << (g_ip_size - tmp_granularity)))
+
+                  # Get colour at coordinates
+                  x = int(query['ip'][0])
+                  y = int(query['interval'][0])
+
+                  # TODO: Why is the x upside down?
+                  colour = ("white" if g_bitmap[len(g_bitmap)-x][y] else "black")
 
                   # Send needed information
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
                   self.send_header('IP_index', str(tmp_ip))
+                  self.send_header('Cell_colour', colour)
                   self.end_headers()
                   return
 
@@ -325,7 +339,7 @@ def create_request_handler(args):
                   self.send_header('Content-type', content_type)
                   #self.send_header('Content-URL', self.path)
                   self.end_headers()
-                  if content_type == 'image/png':
+                  if (content_type == 'image/png') and (query is not None) and ('update' in query):
                      self.wfile.write(base64.b64encode(fd.read()))
                   else:
                      self.wfile.write(fd.read())
