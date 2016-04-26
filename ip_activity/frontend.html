@@ -50,36 +50,82 @@
          dicta sunt explicabo. Donec quis nibh at felis congue commodo. Maecenas aliquet
          accumsan leo. </p>
 
+         <hr>
+
          <!-- Options -->
-         <div class="bitmap_stats floatable">
-            <h3> Characteristics </h3>
-            <table class="bitmap_table">
-               <tr class="subnet_size">
-                  <th> Granularity </th>
-                  <td class="subnet_size"></td>
-               </tr>
-               <tr class="range">
-                  <th> Range </th>
-                  <td class="range"></td>
-               </tr>
-               <tr class="time_interval">
-                  <th> Time interval </th>
-                  <td class="time_interval"></td>
-               <tr class="time_window">
-                  <th> Time window </th>
-                  <td class="time_window"></td>
-               </tr>
-            </table>
+         <div class="columns">
+            <div class="bitmap_stats floatable">
+               <h3> Characteristics </h3>
+               <table class="bitmap_table">
+                  <tr class="subnet_size">
+                     <th> Granularity </th>
+                     <td class="subnet_size"></td>
+                  </tr>
+                  <tr class="range">
+                     <th> Range </th>
+                     <td class="range"></td>
+                  </tr>
+                  <tr class="time_interval">
+                     <th> Time Interval </th>
+                     <td class="time_interval"></td>
+                  <tr class="time_window">
+                     <th> Time Window </th>
+                     <td class="time_window"></td>
+                  </tr>
+               </table>
+            </div>
+      
+            <div class="bitmap_options floatable">
+               <h3> Options </h3>
+               <form id="bitmap_form">
+                  <table class="bitmap_table">
+                     <tr class="granularity">
+                        <th>Granularity</th>
+                        <td>
+                           <div>
+                              <img class="btn form_incr" src="images/upArrow.png">
+                              <p>/</p>
+                              <input class="granularity" name="granularity" type="text" size="3">
+                              <img class=" btn form_decr" src="images/downArrow.png">
+                           </div>
+                        </td>
+                     </tr>
+                     <tr class="range">
+                        <th rowspan="2">Range</th>
+                        <td><input class="first_ip" name="first_ip" type="text"></td>
+                     </tr>
+                     <tr class="range">
+                        <td><input class="last_ip" name="last_ip" type="text"></td>
+                     </tr>
+                     <tr class="time_interval">
+                        <th>Time Interval</th>
+                        <td>
+                           <div>
+                              <img class="btn form_incr" src="images/upArrow.png">
+                              <input class="time_interval" name="time_interval" type="text" size="8">
+                              <p> seconds</p>
+                              <img class=" btn form_decr" src="images/downArrow.png">
+                           </div>
+                        </td>
+                     </tr>
+                     <tr class="time_window">
+                        <th>Time Window</th>
+                        <td>
+                           <div>
+                              <img class="btn form_incr" src="images/upArrow.png">
+                              <input class="time_window" name="time_window" type="text" size="5">
+                              <p> intervals</p>
+                              <img class=" btn form_decr" src="images/downArrow.png">
+                           </div>
+                        </td>
+                     </tr>
+                  </table><br>
+                  <input class="submit" type="submit" value="Submit">
+               </form>
+            </div>
          </div>
-   
-         <div class="bitmap_options floatable">
-            <h3> Options </h3>
-            <ul id="options">
-               <li> Granularity </li>
-               <li> Select area </li>
-               <li> Restore Default </li>
-            </ul>
-         </div>
+
+         <hr>
 
          <!-- Bitmap Types -->
          <div id="bitmap_outer">
@@ -103,8 +149,6 @@
 
 </div>
 </section>
-
-<div id="display_coords"></div>
 
 <!-- Footer -->
 <footer id="footer">

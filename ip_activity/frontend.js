@@ -12,7 +12,22 @@ $(document).ready(function() {
    var timeout_handler = auto_update();
 
    // IP index for later use
-   var index = "";
+   var coords_index = "";
+   var coords_colour = "black";
+   var ip_version = 4;
+   if ($('.bitmap_stats td.range').html().split(" ")[0].indexOf(":") != -1) {
+      ip_version = 6;
+   }
+   var ip_size = ((ip_version == 4) ? 32 : 128);
+
+   // Initialize form values
+   $('.bitmap_options input.granularity').val(parseInt(
+                                       $('.bitmap_stats td.subnet_size').html().slice("1")));
+   $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
+   $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
+
+   
+
 
    // When changing bitmap type, get new bitmap, update CSS
    $("#bitmap_type li").click(function() {
@@ -90,6 +105,36 @@ $(document).ready(function() {
 
    }
 
+   // Handle form submit TODO
+   $('.submit').click(function(event) {
+      event.preventDefault();
+      alert($('#bitmap_form input.granularity').val());
+
+   });
+
+   // Change text in input
+   $('img.btn').click(function(){
+      var value = parseInt($(this).siblings('input').val());
+      if (isNaN(value)) {
+         value = parseInt($('.bitmap_stats td.subnet_size').html().slice("1"));
+      }
+
+      // Increment/decrement within bounds of IP of given version
+      if (value > ip_size) {
+         $(this).siblings('input').val(ip_size);
+      } else if (value < 0) {
+         $(this).siblings('input').val(0);
+      } else {
+         if ($(this).hasClass('form_incr') && (value < ip_size)) {
+            $(this).siblings('input').val(value + 1);
+         } else if ($(this).hasClass('form_decr') && (value > 0)) {
+            $(this).siblings('input').val(value - 1);
+         }
+      }
+
+   });
+
+
    // Set bitmap
    function set_bitmap(http_request)
    {
@@ -104,30 +149,38 @@ $(document).ready(function() {
 
    // Set IP index
    function set_ip_index(http_request) {
-      index = http_request.getResponseHeader("IP_index");
+      coords_index = http_request.getResponseHeader("IP_index");
+      coords_colour = http_request.getResponseHeader("Cell_colour");
    }
 
 
    // Show parameters for each pair of coordinates - images with class 'hover_coords'
    // http://jsfiddle.net/pSVXz/12/
 
+   $( '<div id="display_coords"></div>' ).appendTo('#main')[0];
    $(document).on('mousemove', 'img.hover_coords', function(event) {
       var x = parseInt(event.pageX - $(this).position().left);
       var y = parseInt(event.pageY - $(this).position().top - 50);
 
       var arguments = "calculate_index=true&first_ip=" +
-                      $('td.range').html().split(" ")[0] + "&index=" +
+                      $('td.range').html().split(" ")[0] + "&ip=" +
                       y + "&granularity=" + 
-                      $('td.subnet_size').html().slice("1");
+                      $('td.subnet_size').html().slice("1") + "&interval=" +
+                      x;
 
       // AJAX GET request for IP index
       http_GET("", set_ip_index, arguments);
 
-      $('#display_coords').html(x + ', ' + index).css({
+      $('#display_coords').html(x + ', ' + coords_index).css({
          "position" : "absolute",
          "left": event.pageX + 20,
-         "top": event.pageY - 90
+         "top": event.pageY - 70,
+         "background": coords_colour,
+         "color": ((coords_colour === "black") ? "white" : "black"),
+         "border": "1px solid " + ((coords_colour === "black") ? "white" : "black"),
+         "padding": "5px"
       }).show();
+
    });
 
    // When mouse is out of image boundaries, hide text

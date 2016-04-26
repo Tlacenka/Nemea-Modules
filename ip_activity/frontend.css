@@ -13,7 +13,7 @@ html,body {
    line-height: 1.2;
 }
 
-li:hover {
+li:hover, input[type=submit]:hover {
    cursor: pointer;
    cursor: hand;
 }
@@ -21,6 +21,18 @@ li:hover {
 h1 {
    font-size: 150%;
    color: white;
+}
+h2 {
+   text-shadow: 2px 2px #AABBCC;
+}
+
+.columns {
+   padding-bottom: 20px;
+   overflow: hidden;
+}
+
+hr {
+   clear:both;
 }
 
 #page {
@@ -57,8 +69,6 @@ h1 {
 }
 
 #origin, #selected {
-   /*float: left;
-   width: calc(50% - 1px);*/
    overflow: hidden;
    border-bottom: 1px solid black;
    padding-bottom: 50px;
@@ -92,10 +102,10 @@ h1 {
 #header li.btn {
    display: block;
    float: left;
-   background-color: #68A4D6;
    padding: 0px 10px 0px 10px;
    border: 1px solid black;
    appearance: button;
+   background-color: #68A4D6;
    border-radius: 5px;
    box-shadow: 5px 5px 8px SteelBlue inset;
 }
@@ -124,48 +134,10 @@ h1 {
    display: inline-block;
 }
 
-.bitmap_table {
-   margin: 0;
-   padding: 0;
-   border-collapse: collapse;
-}
-
-.bitmap_table th {
-   background: LightSlateGray;
-   padding: 5px;
-   margin: 0;
-   border: 1px solid black;
-   text-align: left;
-   color: white;
-}
-
-.bitmap_table td {
-   border: 1px solid black;
-   text-align: left;
-   min-width: 100px;
-   text-align: center;
-   padding: 5px;
-   margin: 0;
-}
-
 div.floatable {
    float: left;
-   width: 50%;
-}
-
-#origin #options li {
-   float: left;
-   display: block;
-   border: 1px solid DarkSlateGray;
-   padding: 10px;
-   margin: 0;
-   overflow: hidden;
-}
-
-#origin #bitmap_type li.chosen_type {
-   background-color: LightSlateGray;
-   color: white;
-   box-shadow: 0px -1px 1px DarkSlateGray inset;
+   width: 45%;
+   max-width: 50%;
 }
 
 #origin #bitmap_type li {
@@ -179,18 +151,91 @@ div.floatable {
    background-color: LightSteelBlue;
 }
 
+#origin #bitmap_type li.chosen_type {
+   background-color: LightSlateGray;
+   color: white;
+   box-shadow: 0px -1px 1px DarkSlateGray inset;
+}
+
 #origin #bitmap_outer {
    padding-top: 20px;
    clear: both;
 }
 
 #origin #bitmap_inner {
-   width: 10px;
-   height: 10px;
    border: 1px solid LightSlateGray;
    background: LightGray;
    border-radius: 0px 10px 10px 10px;
    overflow: hidden;
+}
+
+
+/* Tables */
+
+.bitmap_table {
+   margin: 0;
+   padding: 0;
+   border-collapse: collapse;
+}
+
+.bitmap_table th {
+   background: LightSlateGray;
+   padding: 5px;
+   margin: 0;
+   border: 1px solid black;
+   text-align: left;
+   color: white;
+   min-width: 100px;
+}
+
+.bitmap_table td  {
+   border: 1px solid black;
+   text-align: left;
+   min-width: 100px;
+   width: 150px;
+   text-align: center;
+   padding: 5px;
+   margin: 0 auto;
+   overflow: hidden;
+}
+
+.bitmap_options .bitmap_table td {
+   width: 220px;
+}
+
+.bitmap_table td *{
+   float: left;
+   margin-right: 5px;
+}
+
+.bitmap_table td p {
+   margin: 3px 4px 0px 0px;
+}
+
+.bitmap_table td img {
+   border: 1px solid black;
+}
+
+/* Input */
+input[type=submit] {
+   background-color: #68A4D6;
+   border-radius: 5px;
+   box-shadow: 5px 5px 8px SteelBlue inset;
+   color: white;
+   padding: 5px 10px;
+   font-weight: bold;
+}
+
+input[type=text] {
+   background: LightSteelBlue;
+}
+
+input[type=text]:hover {
+   background: #68A4D6;
+}
+
+input[type=submit]:hover {
+   background: SteelBlue;
 }
 
 /* Footer */
@@ -217,13 +262,4 @@ div.floatable {
    float: right;
    margin: auto;
    margin-right: 10px;
-}
-
-#display_coords {
-   z-index: 1;
-   background: LightSlateGray;
-   border : 1px solid gray;
-   color : white;
-   padding : 5px;
-   display : none;
 }
