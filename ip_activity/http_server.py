@@ -214,7 +214,7 @@ def create_request_handler(args):
          # Create and save image
          img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
          image = Image.frombuffer('L', (width, height), img_data)
-         image.save(filename + '.png')
+         image.save(self.arguments['dir'] + '/images/' + filename + '.png')
          return
 
       def edit_bitmap(self, query):
@@ -332,13 +332,13 @@ def create_request_handler(args):
                    ('last_ip' in query) and ('first_int' in query) and
                    ('last_int' in query) and ('time_interval' in query) and
                    ('time_window' in query)):
-   
+
                   # Edit bitmap
                   self.edit_bitmap(query)
                   self.create_image(g_selected_bitmap, 'selected')
-   
+
                   # Set path to selected image
-                  self.path = '/selected.png' # TODO will it be changed?
+                  self.path = '/images/selected.png' # TODO will it be changed?
 
             print('PATH ' + self.path)
 
@@ -382,7 +382,7 @@ def create_request_handler(args):
                print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
-            
+
 
    return My_RequestHandler
 
@@ -397,9 +397,9 @@ def main():
                        help='Server hostname (localhost by default).')
    parser.add_argument('-d', '--dir', type=str, default='.',
                        help='Path to directory with web client files (HTML, CSS, JS) (current directory by default).')
-   parser.add_argument('-c', '--config', type=str, default='.', required=True,
+   parser.add_argument('-c', '--config', type=str, default='config.yaml',
                        help='Path to configuration file (current directory by default).')
-   parser.add_argument('-f', '--filename', type=str, default='bitmap', required=False,
+   parser.add_argument('-f', '--filename', type=str, default='bitmap',
                        help='Filename of bitmap storage files (bitmap by default).')
    args = vars(parser.parse_args())
 
@@ -434,7 +434,7 @@ def main():
 
    # Close server
    server.server_close()
-   
+
 
 if __name__ == '__main__':
    main()

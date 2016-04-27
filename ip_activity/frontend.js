@@ -51,6 +51,7 @@ $(document).ready(function() {
    $('.bitmap_options input.first_int').val(0);
    $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]));
 
+   $('#selected').hide();
 
    // When changing bitmap type, get new bitmap, update CSS
    $('#bitmap_type li').click(function() {
@@ -65,7 +66,6 @@ $(document).ready(function() {
          clearTimeout(timeout_handler);
          auto_update();
       }
-
    });
 
    // Call update every interval
@@ -79,9 +79,8 @@ $(document).ready(function() {
    function update_bitmap() {
 
       // Filename to be added
-      var image = 'image_' + get_bitmap_type() + '.png';
+      var image = 'images/image_' + get_bitmap_type() + '.png';
       http_GET(image, set_bitmap, 'update=true');
-
    }
 
    // Returns bitmap type
@@ -94,7 +93,7 @@ $(document).ready(function() {
          type = 's';
       } else if (value === 'Destination IPs') {
          type = 'd';
-      } else if (value === 'Both Directions') {
+      } else if (value === 'Both') {
          type = 'sd';
       }
 
@@ -128,7 +127,6 @@ $(document).ready(function() {
 
       // Send request
       http_request.send();
-
    }
 
 
@@ -161,6 +159,7 @@ $(document).ready(function() {
       http_GET("", set_selected_area, arguments);
 
       // Update characteristics of selected area
+      $('#selected').show();
       document.getElementById('type').innerHTML = $('#bitmap_type li.chosen_type').html();
       document.getElementById('subnet_size').innerHTML = '/' + subnet_size;
       document.getElementById('ip_range').innerHTML = first_ip + ' - ' + last_ip;
@@ -170,7 +169,11 @@ $(document).ready(function() {
    });
 
    function set_selected_area(http_request) {
-     
+
+      // Add selected section
+      $('#selected').css("display", "block");
+      $('#origin').css("padding-bottom", "0");
+
       // Remove previous image if exists
       if ($('#selected_area').has('img')) {
          $('#selected_area img').remove();
@@ -184,7 +187,6 @@ $(document).ready(function() {
          'width':  $('#bitmap_inner img').width() + 1,
          'margin-top': '50px'
       });
-
    }
 
    // Change text in input
@@ -228,7 +230,6 @@ $(document).ready(function() {
       }
 
       // TODO Cover first and last interval + IP > first cannot be greater than last
-
    });
 
    // Set bitmap
@@ -240,7 +241,8 @@ $(document).ready(function() {
       $('#bitmap_inner').html('<img class="hover_coords" src="data:image/png;base64,' + http_request.responseText + '" />');
       $('#bitmap_inner').css({
          'height':  $('#bitmap_inner img').height() + 1,
-         'width':  $('#bitmap_inner img').width() + 1
+         'width':  $('#bitmap_inner img').width() + 1,
+         'margin-top': '50px'
       });
 
       // Change interval characteristics if range < time window
@@ -295,7 +297,6 @@ $(document).ready(function() {
             'top': ((event.pageY - 50 < mouse_Y) ? (mouse_Y - height) : mouse_Y)
          });
       }
-
    });
 
    
@@ -353,7 +354,6 @@ $(document).ready(function() {
          mouse_X = -1;
          mouse_Y = -1;
       }
-
    });
 
 });

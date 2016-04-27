@@ -66,11 +66,11 @@ hr {
 #origin div.wrapper, #selected div.wrapper {
    max-width: 95%;
    margin: auto;
+   padding-bottom: 50px;
 }
 
 #origin, #selected {
    overflow: hidden;
-   border-bottom: 1px solid black;
    padding-bottom: 50px;
 }
 
@@ -144,28 +144,22 @@ div.floatable {
    float: left;
    display: block;
    border: solid LightSlateGray;
-   border-width: 1px 1px 0px 1px; 
+   border-width: 1px 1px 1px 1px; 
    padding: 10px;
    margin: 0;
-   border-radius: 5px 5px 0px 0px;
+   border-radius: 5px;
    background-color: LightSteelBlue;
 }
 
 #origin #bitmap_type li.chosen_type {
    background-color: LightSlateGray;
    color: white;
-   box-shadow: 0px -1px 1px DarkSlateGray inset;
-}
-
-#origin #bitmap_outer {
-   padding-top: 20px;
-   clear: both;
+   box-shadow: -1px -1px 1px DarkSlateGray inset;
 }
 
 #origin #bitmap_inner, #selected_area {
    border: 1px solid LightSlateGray;
    background: LightGray;
-   border-radius: 0px 10px 10px 10px;
    overflow: hidden;
    display: none;
 }
@@ -232,11 +226,6 @@ div.floatable {
 
 .curr_position #curr_interval {
    width: 50px;
-}
-
-/* Selected */
-#selected div.wrapper {
-   padding-bottom: 50px;
 }
 
 /* Input */

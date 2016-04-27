@@ -56,6 +56,7 @@
          <div class="columns">
             <div class="bitmap_stats floatable">
                <h3> Characteristics </h3>
+
                <table class="bitmap_table">
                   <tr class="subnet_size">
                      <th> Subnet Size </th>
@@ -77,7 +78,15 @@
                      <td class="time_window"></td>
                   </tr>
                </table>
-               
+
+               <!-- Bitmap Types -->
+               <h3>Type</h3>
+               <ul id="bitmap_type">
+                  <li class="chosen_type">Source IPs</li>
+                  <li>Destination IPs</li>
+                  <li>Both</li>
+               </ul>
+
                <table class="bitmap_table curr_position">
                   <tr>
                      <th colspan="2" class="curr_colour">Current Position</th>
@@ -92,7 +101,7 @@
                   </tr>
                </table>
             </div>
-      
+
             <div class="bitmap_options floatable">
                <h3> Select Bitmap Area </h3>
                <form id="bitmap_form">
@@ -159,23 +168,16 @@
 
          <hr>
 
-         <!-- Bitmap Types -->
-         <div id="bitmap_outer">
-            <ul id="bitmap_type">
-               <li class="chosen_type">Source IPs</li>
-               <li>Destination IPs</li>
-               <li>Both Directions</li>
-            </ul>
-            
-            <!-- Bitmap Image -->
-            <div id="bitmap_inner"></div>
-         </div>
+         <!-- Bitmap Image -->
+         <div id="bitmap_inner"></div>
+
       </div>
    </section>
 
    <!-- Selected area -->
    <section id="selected">
       <div class="wrapper">
+         <hr>
          <h2> Selected Area </h2>
          <div class="selected_stats">
             <h3> Characteristics </h3>
