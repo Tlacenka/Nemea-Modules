@@ -21,6 +21,9 @@ $(document).ready(function() {
       'color': 'white'
    });
 
+   var down_ip = curr_index;
+   var down_int = 0;
+
    // Initialise limits for input
    var ip_version = 4;
    if ($('.bitmap_stats td.range').html().split(" ")[0].indexOf(":") != -1) {
@@ -249,10 +252,43 @@ $(document).ready(function() {
          'width': 0,
          'height': 0
       }).show();
+
+      // Save values
+      down_ip = curr_index;
+      down_int = parseInt($('#curr_interval').html());
+      //console.log("down at " + curr_index + " " + $('#curr_interval').html());
    });
 
    // When mouse is up, detach rectangle
-   $(document).on('mouseup', 'body', function() {
+   $(document).on('mouseup', 'html', function() {
+
+      // Add positions to options
+      //console.log("up at " + curr_index + " " + $('#curr_interval').html());
+
+      // Insert rectangle values to Options
+      var ip1 = down_ip;
+      var ip2 = curr_index;
+
+      if (ip1.localeCompare(ip2) < 1) {
+         $('.bitmap_options input.first_ip').val(ip1);
+         $('.bitmap_options input.last_ip').val(ip2);
+      } else {
+         $('.bitmap_options input.first_ip').val(ip2);
+         $('.bitmap_options input.last_ip').val(ip1);
+      }
+
+      var int1 = down_int;
+      var int2 = parseInt($('#curr_interval').html());
+      if (int1 <= int2) {
+         $('.bitmap_options input.first_int').val(int1);
+         $('.bitmap_options input.last_int').val(int2);
+      } else {
+          $('.bitmap_options input.first_int').val(int2);
+         $('.bitmap_options input.last_int').val(int1);
+      }
+
+
+
       mouse_down = false;
       $('#rectangle').hide();
       mouse_X = -1;
