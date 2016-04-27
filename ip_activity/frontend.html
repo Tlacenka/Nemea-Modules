@@ -73,6 +73,20 @@
                      <td class="time_window"></td>
                   </tr>
                </table>
+               
+               <table class="bitmap_table curr_position">
+                  <tr>
+                     <th colspan="2" class="curr_colour">Current Position</th>
+                  </tr>
+                  <tr>
+                     <th>IP</th>
+                     <th>Interval</th>
+                  </tr>
+                  <tr>
+                     <td id="curr_IP"></td>
+                     <td id="curr_interval"></td>
+                  </tr>
+               </table>
             </div>
       
             <div class="bitmap_options floatable">
@@ -90,19 +104,33 @@
                            </div>
                         </td>
                      </tr>
-                     <tr class="range">
-                        <th rowspan="2">Range</th>
+                     <tr class="ip_range">
+                        <th rowspan="2">IP Range</th>
                         <td><input class="first_ip" name="first_ip" type="text"></td>
                      </tr>
-                     <tr class="range">
+                     <tr class="ip_range">
                         <td><input class="last_ip" name="last_ip" type="text"></td>
+                     </tr>
+                     <tr class="int_range">
+                        <th>Interval Range</th>
+                        <td>
+                           <div>
+                              <img class="btn form_incr first_int" src="images/upArrow.png">
+                              <input class="first_int" name="first_int" type="text" size="4">
+                              <img class=" btn form_decr first_int" src="images/downArrow.png">
+                              <p> - </p>
+                              <img class="btn form_incr last_int" src="images/upArrow.png">
+                              <input class="last_int" name="last_int" type="text" size="4">
+                              <img class=" btn form_decr last_int" src="images/downArrow.png">
+                           </div>
+                        </td>
                      </tr>
                      <tr class="time_interval">
                         <th>Time Interval</th>
                         <td>
                            <div>
                               <img class="btn form_incr" src="images/upArrow.png">
-                              <input class="time_interval" name="time_interval" type="text" size="8">
+                              <input class="time_interval" name="time_interval" type="text" size="10">
                               <p> seconds</p>
                               <img class=" btn form_decr" src="images/downArrow.png">
                            </div>
@@ -113,7 +141,7 @@
                         <td>
                            <div>
                               <img class="btn form_incr" src="images/upArrow.png">
-                              <input class="time_window" name="time_window" type="text" size="5">
+                              <input class="time_window" name="time_window" type="text" size="4">
                               <p> intervals</p>
                               <img class=" btn form_decr" src="images/downArrow.png">
                            </div>
@@ -134,6 +162,7 @@
                <li>Destination IPs</li>
                <li>Both Directions</li>
             </ul>
+            
             <!-- Bitmap Image -->
             <div id="bitmap_inner"></div>
          </div>

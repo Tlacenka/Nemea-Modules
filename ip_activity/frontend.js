@@ -8,25 +8,42 @@
 // Main function
 $(document).ready(function() {
 
-   // Start updating - immediately or after timeout?
+   // Start updating bitmap
    var timeout_handler = auto_update();
 
-   // IP index for later use
-   var coords_index = "";
-   var coords_colour = "black";
+   // IP index and colour initialisation
+   var curr_index = $('.bitmap_stats td.range').html().split(" ")[0];
+   var curr_colour = "black";
+   document.getElementById("curr_IP").innerHTML = curr_index;
+   document.getElementById("curr_interval").innerHTML = 0;
+   $('th.curr_colour').css({
+      'background': 'black',
+      'color': 'white'
+   });
+
+   // Initialise limits for input
    var ip_version = 4;
    if ($('.bitmap_stats td.range').html().split(" ")[0].indexOf(":") != -1) {
       ip_version = 6;
    }
-   var ip_size = ((ip_version == 4) ? 32 : 128);
+   var ip_max = ((ip_version == 4) ? 32 : 128);
+   var interval_max = 86400; // a day
+   var window_max = 1000;
+
+   // Mouse position for drag event
+   var mouse_X = -1;
+   var mouse_Y = -1;
+   var mouse_down = false;
 
    // Initialize form values
    $('.bitmap_options input.granularity').val(parseInt(
                                        $('.bitmap_stats td.subnet_size').html().slice("1")));
    $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
-
-   
+   $('.bitmap_options input.time_interval').val(parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0]));
+   $('.bitmap_options input.time_window').val(parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]));
+   $('.bitmap_options input.first_int').val(0);
+   $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]));
 
 
    // When changing bitmap type, get new bitmap, update CSS
@@ -48,7 +65,7 @@ $(document).ready(function() {
    // Call update every interval
    function auto_update() {
       update_bitmap();
-      var interval = parseInt($('td.time_interval').html().split(" ")[0])*1000;
+      var interval = parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0])*1000;
       timeout_handler = setTimeout(auto_update, interval);
    }
 
@@ -105,6 +122,7 @@ $(document).ready(function() {
 
    }
 
+
    // Handle form submit TODO
    $('.submit').click(function(event) {
       event.preventDefault();
@@ -115,25 +133,46 @@ $(document).ready(function() {
    // Change text in input
    $('img.btn').click(function(){
       var value = parseInt($(this).siblings('input').val());
-      if (isNaN(value)) {
-         value = parseInt($('.bitmap_stats td.subnet_size').html().slice("1"));
-      }
-
-      // Increment/decrement within bounds of IP of given version
-      if (value > ip_size) {
-         $(this).siblings('input').val(ip_size);
-      } else if (value < 0) {
-         $(this).siblings('input').val(0);
-      } else {
-         if ($(this).hasClass('form_incr') && (value < ip_size)) {
-            $(this).siblings('input').val(value + 1);
-         } else if ($(this).hasClass('form_decr') && (value > 0)) {
-            $(this).siblings('input').val(value - 1);
+      var classname = $(this).siblings('input').attr('class');
+      if ($(this).closest('tr').hasClass('int_range')) {
+         if ($(this).hasClass('first_int')) {
+            value = parseInt($(this).siblings('input.first_int').val());
+            classname = 'first_int';
+         } else if ($(this).hasClass('last_int')) {
+            value = parseInt($(this).siblings('input.last_int').val());
+            classname = 'last_int'
          }
       }
 
-   });
+      // Get limit based on type of input
+      var limit = 0;
+      
+      if (classname === 'granularity') {
+         limit = ip_max;
+      } else if (classname === 'time_interval') {
+         limit = interval_max;
+      } else if ((classname === 'time_window') || (classname ==='first_int') ||
+                 (classname ==='last_int')) {
+         limit = window_max;
+      }
+     
 
+      // Increment/decrement
+      if (value > limit) {
+         $(this).siblings('input.' + classname).val(limit);
+      } else if (value < 0) {
+         $(this).siblings('input.' + classname).val(0);
+      } else {
+         if ($(this).hasClass('form_incr') && (value < limit)) {
+            $(this).siblings('input.' + classname).val(value + 1);
+         } else if ($(this).hasClass('form_decr') && (value > 0)) {
+            $(this).siblings('input.' + classname).val(value - 1);
+         }
+      }
+
+      // Cover first and last interval + IP > first cannot be greater than last
+
+   });
 
    // Set bitmap
    function set_bitmap(http_request)
@@ -147,48 +186,78 @@ $(document).ready(function() {
       });
    }
 
-   // Set IP index
+   // Set IP index and cell colour
    function set_ip_index(http_request) {
-      coords_index = http_request.getResponseHeader("IP_index");
-      coords_colour = http_request.getResponseHeader("Cell_colour");
+      curr_index = http_request.getResponseHeader('IP_index');
+      curr_colour = http_request.getResponseHeader('Cell_colour');
    }
 
 
    // Show parameters for each pair of coordinates - images with class 'hover_coords'
+   // Also when dragging, extend rectangle
    // http://jsfiddle.net/pSVXz/12/
-
-   $( '<div id="display_coords"></div>' ).appendTo('#main')[0];
    $(document).on('mousemove', 'img.hover_coords', function(event) {
+
+      // Displaying coordinates
       var x = parseInt(event.pageX - $(this).position().left);
       var y = parseInt(event.pageY - $(this).position().top - 50);
 
-      var arguments = "calculate_index=true&first_ip=" +
-                      $('td.range').html().split(" ")[0] + "&ip=" +
-                      y + "&granularity=" + 
-                      $('td.subnet_size').html().slice("1") + "&interval=" +
+      var arguments = 'calculate_index=true&first_ip=' +
+                      $('td.range').html().split(" ")[0] + '&ip=' +
+                      y + '&granularity=' + 
+                      $('td.subnet_size').html().slice('1') + '&interval=' +
                       x;
 
-      // AJAX GET request for IP index
       http_GET("", set_ip_index, arguments);
 
-      $('#display_coords').html(x + ', ' + coords_index).css({
-         "position" : "absolute",
-         "left": event.pageX + 20,
-         "top": event.pageY - 70,
-         "background": coords_colour,
-         "color": ((coords_colour === "black") ? "white" : "black"),
-         "border": "1px solid " + ((coords_colour === "black") ? "white" : "black"),
-         "padding": "5px"
-      }).show();
+      document.getElementById("curr_IP").innerHTML = curr_index;
+      document.getElementById("curr_interval").innerHTML = x;
+      $('th.curr_colour').css({
+         'background': curr_colour,
+         'color': ((curr_colour === 'black') ? 'white' : 'black')
+      });
 
-   });
+      // Dragging
+      if (mouse_down) {
+         var width = Math.abs(mouse_X - event.pageX);
+         var height = Math.abs(mouse_Y - event.pageY + 50);
+         $('#rectangle').css({
+            'width': width - 1,
+            'height': height - 1,
+            'left': ((event.pageX < mouse_X) ? (mouse_X - width) : mouse_X),
+            'top': ((event.pageY - 50 < mouse_Y) ? (mouse_Y - height) : mouse_Y)
+         });
+      }
 
-   // When mouse is out of image boundaries, hide text
-   $(document).on('mouseleave', 'img.hover_coords', function() {
-      $('#display_coords').hide();
    });
 
    
+   // Drag image function - updates values in submit
+   $( '<div id="rectangle" class="hover_coords"></div>' ).appendTo('#main')[0];
+
+   $(document).on('mousedown', 'img.hover_coords', function(event) {
+      mouse_down = true;
+      event.preventDefault();
+      mouse_X = event.pageX;
+      mouse_Y = event.pageY - 50;
+      $('#rectangle').css({
+         'border': '2px solid DeepSkyBlue',
+         'background': 'transparent',
+         'position': 'absolute',
+         'top': mouse_Y,
+         'left': mouse_X,
+         'width': 0,
+         'height': 0
+      }).show();
+   });
+
+   // When mouse is up, detach rectangle
+   $(document).on('mouseup', 'body', function() {
+      mouse_down = false;
+      $('#rectangle').hide();
+      mouse_X = -1;
+      mouse_Y = -1;
+   });
 
 });
 
