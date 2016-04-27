@@ -158,10 +158,9 @@ div.floatable {
 }
 
 #origin #bitmap_inner, #selected_area {
-   border: 1px solid LightSlateGray;
-   background: LightGray;
+   width: 100%;
+   height: auto;
    overflow: hidden;
-   display: none;
 }
 
 
@@ -249,6 +248,13 @@ input[type=text]:hover {
 
 input[type=submit]:hover {
    background: SteelBlue;
+}
+
+.selected_position.floatable {
+   margin-top: 35px;;
+}
+.selected_stats {
+   padding-bottom: 50px;
 }
 
 /* Footer */

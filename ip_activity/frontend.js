@@ -49,7 +49,7 @@ $(document).ready(function() {
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
    $('.bitmap_options input.time_interval').val(parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0]));
    $('.bitmap_options input.first_int').val(0);
-   $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]));
+   $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.int_range').html().split(" ")[0]));
 
    $('#selected').hide();
 
@@ -192,9 +192,12 @@ $(document).ready(function() {
       // Set selected area image
       $('#selected_area').show();
       $('#selected_area').html('<img class="hover_coords selected_area" src="data:image/png;base64,' + http_request.responseText + '" />');
+      $('#selected_area img').css({
+         'border': '1px solid SlateGray',
+         'display': 'block',
+         'margin': 'auto'
+      });
       $('#selected_area').css({
-         'height':  $('img.selected_area').height() + 1,
-         'width':  $('img.selected_area').width() + 1,
          'margin-top': '50px'
       });
    }
@@ -248,9 +251,12 @@ $(document).ready(function() {
       $('#bitmap_inner').show();
       $('#bitmap_inner img').remove();
       $('#bitmap_inner').html('<img class="hover_coords origin" src="data:image/png;base64,' + http_request.responseText + '" />');
+      $('#bitmap_inner img').css({
+         'border': '1px solid SlateGray',
+         'display': 'block',
+         'margin': 'auto'
+      });
       $('#bitmap_inner').css({
-         'height':  $('#bitmap_inner img').height() + 1,
-         'width':  $('#bitmap_inner img').width() + 1,
          'margin-top': '50px'
       });
 
@@ -274,8 +280,12 @@ $(document).ready(function() {
    $(document).on('mousemove', 'img.hover_coords', function(event) {
 
       // Displaying coordinates
-      var x = parseInt(event.pageX - $(this).position().left);
-      var y = parseInt(event.pageY - $(this).position().top - 50);
+      var x = parseInt(event.pageX - $(this).position().left - 1);
+      var y = parseInt(event.pageY - $(this).position().top - 51);
+
+      if ((x < 0) || (y < 0)) {
+         return;
+      }
 
       // Origin x selected
       var classname = '';
@@ -312,11 +322,17 @@ $(document).ready(function() {
       if (classname === 'origin') {
          document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
                                         $('.bitmap_stats td.subnet_size').html();
+         if (x == parseInt($('.bitmap_stats td.int_range').html())) {
+            x--;
+         }
          document.getElementById(classname + '_curr_interval').innerHTML = x;
       } else {
          // Move coordinates based on selected area
          document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
                                         $('.selected_stats #selected_subnet_size').html();
+         if (x == parseInt($('.selected_stats #selected_int_range').html().split(' ')[2])) {
+            x--;
+         }
          document.getElementById(classname + '_curr_interval').innerHTML = x +
                                        parseInt($('.selected_stats #selected_int_range').html().split(" ")[0]);
       }
@@ -362,15 +378,71 @@ $(document).ready(function() {
       down_int = parseInt($('#origin_curr_interval').html());
    });
 
+   // Returns statement, if ip1 < ip2
+   function compare_ips(ip1, ip2) {
+
+      // Compare IPs
+      if (ip_version == 4) {
+         console.log(ip1 + " " + ip2);
+         var ip1_list = ip1.split('.');
+         var ip2_list = ip2.split('.');
+         var len = ip1_list.length;
+         console.log(ip1_list + " " + ip2_list);
+         for (var i = 0; i < len; i++) {
+            if (parseInt(ip1_list[i]) < parseInt(ip2_list[i])) {
+               return true;
+            } else if (parseInt(ip1_list[i]) > parseInt(ip2_list[i])) {
+               return false;
+            }
+         }
+      } else { // IPv6
+         var ip1_list = ip1.split(':');
+         var ip2_list = ip2.split(':');
+         // Normalize
+         var tmp = ip1_list;
+         for (var i = 0; i < 2; i++, tmp = ip2_list) {
+            var len = tmp.length;
+            // Get rid of grouped ::, normalize to length of 4
+            for (var i = 0; i < len; i++) {
+               if (tmp[i] != '') {
+                  tmp[i] = ('0000' + tmp[i]).substr(-4);
+               } else {
+                  tmp[i] = '0000';
+               }
+            }
+
+            if (i == 0) {
+               ip1_list = tmp;
+            } else {
+               ip2_list = tmp;
+            }
+         }
+
+         // Compare normalized IPv6
+         var len = ip1_list.length;
+
+         for (var i = 0; i < len; i++) {
+            if (parseInt(ip1_list[i], 16) < parseInt(ip2_list[i], 16)) {
+               return true;
+            } else if (parseInt(ip1_list[i], 16) > parseInt(ip2_list[i], 16)) {
+               return false;
+            }
+         }
+      }
+
+      return true;
+   }
+
    // When mouse is up, detach rectangle
    $(document).on('mouseup', 'html', function() {
 
       if (mouse_down) {
          // Insert rectangle values to Options
          var ip1 = down_ip;
-         var ip2 = curr_index;
+         var ip2 = curr_index;         
 
-         if (ip1.localeCompare(ip2) < 1) {
+         // Is ip1 < ip2 ?
+         if (compare_ips(ip1, ip2)) {
             $('.bitmap_options input.first_ip').val(ip1);
             $('.bitmap_options input.last_ip').val(ip2);
          } else {

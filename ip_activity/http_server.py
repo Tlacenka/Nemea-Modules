@@ -395,8 +395,16 @@ def create_request_handler(args):
 
                   # TODO: Why is the x upside down?
                   if bitmap_type == 'origin':
+                     if x == len(g_bitmap):
+                        x -= 1
+                     if y == len(g_bitmap[0]):
+                        y -= 1
                      colour = ("white" if ((g_bitmap is not None) and g_bitmap[len(g_bitmap)-1-x][y]) else "black")
                   else:
+                     if x == len(g_selected_bitmap):
+                        x -= 1
+                     if y == len(g_selected_bitmap[0]):
+                        y -= 1
                      colour = ("white" if ((g_selected_bitmap is not None) and g_selected_bitmap[len(g_selected_bitmap)-1-x][y]) else "black")
 
 
