@@ -49,6 +49,7 @@ import base64
 from bitarray import bitarray
 from bs4 import BeautifulSoup # https://www.crummy.com/software/BeautifulSoup/
 import cgi
+import copy
 import ipaddress
 import logging
 import math
@@ -85,8 +86,20 @@ g_byte_vector_size = 0
 g_time_interval = 0
 g_time_window = 0
 
+
 #Bitmaps
 g_bitmap = None
+
+# Selected area
+g_selected_first_ip = None
+g_selected_last_ip = None
+g_selected_bit_vector_size = 0
+
+g_selected_granularity = 0
+g_selected_first_int = 0
+g_selected_last_int = 0
+g_selected_time_interval = 0
+
 g_selected_bitmap = None
 
 # SIGTERM
@@ -219,14 +232,86 @@ def create_request_handler(args):
 
       def edit_bitmap(self, query):
          ''' Can involve selecting area, changing size '''
-         global g_bitmap, g_selected_bitmap
+         global g_bitmap, g_selected_bitmap, g_first_ip
+         global g_selected_first_ip, g_selected_last_ip, g_selected_bit_vector_size
 
-         tmp_bitmap = g_bitmap
+         tmp_bitmap = copy.deepcopy(g_bitmap)
 
          # Do magic here
          print ('Editing bitmap')
 
+         # Save selected IP range
+         if sys.version_info[0] == 2:
+            g_selected_first_ip = ipaddress.ip_address(unicode(query['first_ip'][0], "utf-8"))
+            g_selected_last_ip = ipaddress.ip_address(unicode(query['last_ip'][0], "utf-8"))
+         else:
+            g_selected_first_ip = ipaddress.ip_address(query['first_ip'][0])
+            g_selected_last_ip = ipaddress.ip_address(query['last_ip'][0])
+      
+
+         # Adjust IP range (deleting rows)
+         ip1_index = self.get_index_from_ip(str(g_first_ip), query['first_ip'][0], int(query['subnet_size'][0]))
+         ip2_index = self.get_index_from_ip(str(g_first_ip), query['last_ip'][0], int(query['subnet_size'][0]))
+         
+         # Save IP range length
+         g_selected_bit_vector_size = ip2_index - ip1_index
+
+         # Move bitmap [ip1_index - ip2_index] to [0 - g_selected_bit_vector_size]
+         for i in range(ip1_index, ip2_index):
+            tmp_bitmap[i-ip1_index] = tmp_bitmap[i]
+
+         # Delete the rest
+         for i in range(g_selected_bit_vector_size, len(g_bitmap)):
+            del tmp_bitmap[i]
+
+         # Adjust Interval range (deleting columns)
+
+         # Save interval range
+         g_selected_first_int = int(query['first_int'][0])
+         g_selected_last_int = int(query['last_int'][0])
+
+         # Delete intervals out of range from rows
+         for r in range(g_selected_bit_vector_size):
+            tmp_bitmap[r] = tmp_bitmap[r][g_selected_first_int:g_selected_last_int]
+
          g_selected_bitmap = tmp_bitmap
+
+      def get_ip_from_index(self, first_ip, index, granularity):
+         ''' Calculates IP at index from first_ip considering granularity
+             Handles IPs as strings '''
+
+         # Shift IP, increment and shift back
+         if sys.version_info[0] == 2:
+            ip = ipaddress.ip_address(unicode(first_ip, "utf-8"))
+         else:
+            ip = ipaddress.ip_address(first_ip)
+
+         ip = ipaddress.ip_address((int(ip) >> (ip.max_prefixlen - granularity)))
+         ip += index
+         ip = ipaddress.ip_address((int(ip) << (ip.max_prefixlen - granularity)))
+
+         return str(ip)
+
+      def get_index_from_ip(self, first_ip, curr_ip, granularity):
+         ''' Calculates offset from first ip to current one (passed as strings) '''
+
+         # Get IPs
+         if sys.version_info[0] == 2:
+            ip1 = ipaddress.ip_address(unicode(first_ip, "utf-8"))
+            ip2 = ipaddress.ip_address(unicode(curr_ip, "utf-8"))
+         else:
+            ip1 = ipaddress.ip_address(first_ip)
+            ip2 = ipaddress.ip_address(curr_ip)
+      
+         # Adjust IPs to granularity, shift
+         shift = ip1.max_prefixlen - granularity
+
+         shifted_1 = ipaddress.ip_address(int(ip1) >> shift)
+         shifted_2 = ipaddress.ip_address(int(ip2) >> shift)
+      
+         # Get index
+         return int(shifted_2) - int(shifted_1)
+
 
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
@@ -293,35 +378,32 @@ def create_request_handler(args):
                   self.create_image(g_bitmap, 'image_' + bmap_type)
 
                # If IP index is required
-               if (('calculate_index' in query) and ('first_ip' in query) and
-                   ('ip_index' in query) and ('interval' in query) and
-                   ('granularity' in query)):
+               if (('calculate_index' in query) and ('bitmap_type' in query) and
+                   ('first_ip' in query) and ('ip_index' in query) and
+                   ('interval' in query) and ('granularity' in query)):
 
                   # Get IPs and subnet
-                  tmp_ip = None
-                  if sys.version_info[0] == 2:
-                     tmp_ip = ipaddress.ip_address(unicode(query['first_ip'][0], "utf-8"))
-                  else:
-                     tmp_ip = ipaddress.ip_address(query['first_ip'][0])
-
+                  tmp_ip = query['first_ip'][0]
                   tmp_granularity = int(query['granularity'][0])
-
-                  # Get IP subnet at index
-                  tmp_ip = ipaddress.ip_address((int(tmp_ip) >> (g_ip_size - tmp_granularity)))
-                  tmp_ip += int(query['ip_index'][0])
-                  tmp_ip = ipaddress.ip_address((int(tmp_ip) << (g_ip_size - tmp_granularity)))
+                  tmp_index = int(query['ip_index'][0])
+                  bitmap_type = query['bitmap_type'][0]
+                  tmp_ip = self.get_ip_from_index(tmp_ip, tmp_index, tmp_granularity)
 
                   # Get colour at coordinates
-                  x = int(query['ip_index'][0])
+                  x = tmp_index
                   y = int(query['interval'][0])
 
                   # TODO: Why is the x upside down?
-                  colour = ("white" if ((g_bitmap is not None) and g_bitmap[len(g_bitmap)-x][y]) else "black")
+                  if bitmap_type == 'origin':
+                     colour = ("white" if ((g_bitmap is not None) and g_bitmap[len(g_bitmap)-1-x][y]) else "black")
+                  else:
+                     colour = ("white" if ((g_selected_bitmap is not None) and g_selected_bitmap[len(g_selected_bitmap)-1-x][y]) else "black")
+
 
                   # Send needed information
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
-                  self.send_header('IP_index', str(tmp_ip))
+                  self.send_header('IP_index', tmp_ip)
                   self.send_header('Cell_colour', colour)
                   self.end_headers()
                   return

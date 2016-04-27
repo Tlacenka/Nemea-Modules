@@ -87,17 +87,17 @@
                   <li>Both</li>
                </ul>
 
-               <table class="bitmap_table curr_position">
+               <table class="bitmap_table origin_curr_position">
                   <tr>
-                     <th colspan="2" class="curr_colour">Current Position</th>
+                     <th colspan="2" class="origin_curr_colour">Current Position</th>
                   </tr>
                   <tr>
                      <th>IP</th>
                      <th>Interval</th>
                   </tr>
                   <tr>
-                     <td id="curr_IP"></td>
-                     <td id="curr_interval"></td>
+                     <td id="origin_curr_IP"></td>
+                     <td id="origin_curr_interval"></td>
                   </tr>
                </table>
             </div>
@@ -173,15 +173,15 @@
             <table class="bitmap_table">
                <tr class="type">
                   <th> Bitmap Type </th>
-                  <td id="type"></td>
+                  <td id="selected_type"></td>
                </tr>
                <tr class="subnet_size">
                   <th> Subnet Size </th>
-                  <td id="subnet_size"></td>
+                  <td id="selected_subnet_size"></td>
                </tr>
                <tr class="ip_range">
                   <th> IP Range </th>
-                  <td id="ip_range"></td>
+                  <td id="selected_ip_range"></td>
                </tr>
                <tr class="int_range">
                   <th> Interval Range </th>
@@ -189,10 +189,24 @@
                </tr>
                <tr class="time_interval">
                   <th> Time Interval </th>
-                  <td id="time_interval"></td>
+                  <td id="selected_time_interval"></td>
             </table>
          </div>
-         
+
+          <table class="bitmap_table selected_curr_position">
+            <tr>
+               <th colspan="2" class="selected_curr_colour">Current Position</th>
+            </tr>
+            <tr>
+               <th>IP</th>
+               <th>Interval</th>
+            </tr>
+            <tr>
+               <td id="selected_curr_IP"></td>
+               <td id="selected_curr_interval"></td>
+            </tr>
+         </table>
+
          <div id="selected_area"></div>
       </div>
    </section>

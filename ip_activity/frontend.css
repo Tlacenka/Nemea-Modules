@@ -216,15 +216,16 @@ div.floatable {
    border: 1px solid black;
 }
 
-.curr_position {
+.origin_curr_position, .selected_curr_position {
    margin-top: 30px;
 }
 
-.curr_position th {
+.origin_curr_position th, .selected_curr_position th {
    text-align: center;
 }
 
-.curr_position #curr_interval {
+.origin_curr_position #origin_curr_interval,
+.selected_curr_position #selected_curr_interval {
    width: 50px;
 }
 
