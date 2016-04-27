@@ -42,15 +42,15 @@
    <!-- Original Bitmap -->
    <section id="origin">
       <div class="wrapper">
-         <h2> Original Bitmap </h2>
+         <h2> Instructions </h2>
          <p> This module blablbala. Lorem ipsum dolor sit amet, consectetuer
          adipiscing elit. Fusce tellus. Sed ut perspiciatis unde omnis iste natus
          error sit voluptatem accusantium doloremque laudantium, totam rem aperiam,
          eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae
          dicta sunt explicabo. Donec quis nibh at felis congue commodo. Maecenas aliquet
          accumsan leo. </p>
-
          <hr>
+         <h2> Original Bitmap </h2>
 
          <!-- Options -->
          <div class="columns">
@@ -58,12 +58,16 @@
                <h3> Characteristics </h3>
                <table class="bitmap_table">
                   <tr class="subnet_size">
-                     <th> Granularity </th>
+                     <th> Subnet Size </th>
                      <td class="subnet_size"></td>
                   </tr>
                   <tr class="range">
-                     <th> Range </th>
+                     <th> IP Range </th>
                      <td class="range"></td>
+                  </tr>
+                  <tr class="range">
+                     <th> Interval Range </th>
+                     <td class="int_range" id="int_range"></td>
                   </tr>
                   <tr class="time_interval">
                      <th> Time Interval </th>
@@ -90,11 +94,11 @@
             </div>
       
             <div class="bitmap_options floatable">
-               <h3> Options </h3>
+               <h3> Select Bitmap Area </h3>
                <form id="bitmap_form">
                   <table class="bitmap_table">
                      <tr class="granularity">
-                        <th>Granularity</th>
+                        <th>Subnet Size</th>
                         <td>
                            <div>
                               <img class="btn form_incr" src="images/upArrow.png">
@@ -173,6 +177,36 @@
    <section id="selected">
       <div class="wrapper">
          <h2> Selected Area </h2>
+         <div class="selected_stats">
+            <h3> Characteristics </h3>
+            <table class="bitmap_table">
+               <tr class="type">
+                  <th> Bitmap Type </th>
+                  <td id="type"></td>
+               </tr>
+               <tr class="subnet_size">
+                  <th> Subnet Size </th>
+                  <td id="subnet_size"></td>
+               </tr>
+               <tr class="ip_range">
+                  <th> IP Range </th>
+                  <td id="ip_range"></td>
+               </tr>
+               <tr class="int_range">
+                  <th> Interval Range </th>
+                  <td id="selected_int_range"></td>
+               </tr>
+               <tr class="time_interval">
+                  <th> Time Interval </th>
+                  <td id="time_interval"></td>
+               <tr class="time_window">
+                  <th> Time Window </th>
+                  <td id="time_window"></td>
+               </tr>
+            </table>
+         </div>
+         
+         <div id="selected_area"></div>
       </div>
    </section>
 

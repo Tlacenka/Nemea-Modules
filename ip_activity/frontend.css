@@ -162,11 +162,12 @@ div.floatable {
    clear: both;
 }
 
-#origin #bitmap_inner {
+#origin #bitmap_inner, #selected_area {
    border: 1px solid LightSlateGray;
    background: LightGray;
    border-radius: 0px 10px 10px 10px;
    overflow: hidden;
+   display: none;
 }
 
 
@@ -203,6 +204,11 @@ div.floatable {
    width: 230px;
 }
 
+.selected_stats .bitmap_table td{
+   min-width: 150px;
+   width: 200px;
+}
+
 .bitmap_table td *{
    float: left;
    margin-right: 5px;
@@ -228,7 +234,10 @@ div.floatable {
    width: 50px;
 }
 
-
+/* Selected */
+#selected div.wrapper {
+   padding-bottom: 50px;
+}
 
 /* Input */
 input[type=submit] {
