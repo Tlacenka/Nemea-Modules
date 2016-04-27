@@ -87,6 +87,7 @@ g_time_window = 0
 
 #Bitmaps
 g_bitmap = None
+g_selected_bitmap = None
 
 # SIGTERM
 def sigterm_handler(signal, frame):
@@ -208,6 +209,7 @@ def create_request_handler(args):
          for r in range(height):
             for b in range(width):
                img_buffer.append(bitmap[r][b])
+            #print(bitmap[r])
 
          # Create and save image
          img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
@@ -215,14 +217,28 @@ def create_request_handler(args):
          image.save(filename + '.png')
          return
 
+      def edit_bitmap(self, query):
+         ''' Can involve selecting area, changing size '''
+         global g_bitmap, g_selected_bitmap
+
+         tmp_bitmap = g_bitmap
+
+         # Do magic here
+         print ('Editing bitmap')
+
+         g_selected_bitmap = tmp_bitmap
+
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
-         global g_granularity, g_first_ip, g_last_ip, g_time_interval, g_time_window, g_bitmap
+         global g_granularity, g_first_ip, g_last_ip, g_time_interval
+         global g_time_window, g_bitmap, g_selected_bitmap
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
             # Load source bitmap
             g_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
+            #for b in range(g_bit_vector_size):
+            #   print(g_bitmap[b])
             self.create_image(g_bitmap, "image_s")
 
             # Open main HTML file
@@ -238,6 +254,7 @@ def create_request_handler(args):
                   # Insert characteristics
                   html_file.find('td', 'subnet_size').append("/" + str(g_granularity))
                   html_file.find('td', 'range').append(str(g_first_ip) + " - " + str(g_last_ip))
+                  html_file.find('td', 'int_range').append(str(len(g_bitmap[0])) + " intervals")
                   html_file.find('td', 'time_interval').append(str(g_time_interval) + " seconds")
                   html_file.find('td', 'time_window').append(str(g_time_window) + " intervals")
 
@@ -277,7 +294,8 @@ def create_request_handler(args):
 
                # If IP index is required
                if (('calculate_index' in query) and ('first_ip' in query) and
-                   ('ip' in query) and ('interval' in query) and ('granularity' in query)):
+                   ('ip_index' in query) and ('interval' in query) and
+                   ('granularity' in query)):
 
                   # Get IPs and subnet
                   tmp_ip = None
@@ -290,15 +308,15 @@ def create_request_handler(args):
 
                   # Get IP subnet at index
                   tmp_ip = ipaddress.ip_address((int(tmp_ip) >> (g_ip_size - tmp_granularity)))
-                  tmp_ip += int(query['ip'][0])
+                  tmp_ip += int(query['ip_index'][0])
                   tmp_ip = ipaddress.ip_address((int(tmp_ip) << (g_ip_size - tmp_granularity)))
 
                   # Get colour at coordinates
-                  x = int(query['ip'][0])
+                  x = int(query['ip_index'][0])
                   y = int(query['interval'][0])
 
                   # TODO: Why is the x upside down?
-                  colour = ("white" if g_bitmap[len(g_bitmap)-x][y] else "black")
+                  colour = ("white" if ((g_bitmap is not None) and g_bitmap[len(g_bitmap)-x][y]) else "black")
 
                   # Send needed information
                   self.send_response(200)
@@ -308,11 +326,20 @@ def create_request_handler(args):
                   self.end_headers()
                   return
 
+               # If selected area is required
+               if (('select_area' in query) and ('bitmap_type' in query) and
+                   ('subnet_size' in query) and ('first_ip' in query) and
+                   ('last_ip' in query) and ('first_int' in query) and
+                   ('last_int' in query) and ('time_interval' in query) and
+                   ('time_window' in query)):
+   
+                  # Edit bitmap
+                  self.edit_bitmap(query)
+                  self.create_image(g_selected_bitmap, 'selected')
+   
+                  # Set path to selected image
+                  self.path = '/selected.png' # TODO will it be changed?
 
-            # Print out logging information about the path and args.
-            #if 'content-type' in self.headers:
-            #   ctype, _ = cgi.parse_header(self.headers['content-type'])
-            #   print('TYPE ' + ctype)
             print('PATH ' + self.path)
 
             open_mode = 'r'
@@ -337,9 +364,16 @@ def create_request_handler(args):
                with open(self.arguments['dir'] + self.path, open_mode) as fd:
                   self.send_response(200)
                   self.send_header('Content-type', content_type)
-                  #self.send_header('Content-URL', self.path)
+
+                  if (query is not None) and ('update' in query):
+                     self.send_header('Interval_range',
+                                     str(len(g_bitmap[0]) if ((g_bitmap is not None) and (len(g_bitmap) > 0)) else 0))
+
                   self.end_headers()
-                  if (content_type == 'image/png') and (query is not None) and ('update' in query):
+
+                  # If image is sent via AJAX, encode to base64
+                  if ((content_type == 'image/png') and (query is not None) and
+                     (('update' in query) or ('select_area' in query))):
                      self.wfile.write(base64.b64encode(fd.read()))
                   else:
                      self.wfile.write(fd.read())

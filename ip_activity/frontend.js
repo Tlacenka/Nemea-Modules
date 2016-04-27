@@ -175,7 +175,7 @@ $(document).ready(function() {
       if ($('#selected_area').has('img')) {
          $('#selected_area img').remove();
       }
-/*
+
       // Set selected area image
       $('#selected_area').show();
       $('#selected_area').html('<img class="hover_coords selected_area" src="data:image/png;base64,' + http_request.responseText + '" />');
@@ -184,7 +184,7 @@ $(document).ready(function() {
          'width':  $('#bitmap_inner img').width() + 1,
          'margin-top': '50px'
       });
-*/
+
    }
 
    // Change text in input
