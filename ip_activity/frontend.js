@@ -34,7 +34,6 @@ $(document).ready(function() {
    }
    var ip_max = ((ip_version == 4) ? 32 : 128);
    var interval_max = 86400; // a day
-   var window_max = 1000;
 
    // Mouse position for drag event
    var mouse_X = -1;
@@ -47,7 +46,6 @@ $(document).ready(function() {
    $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
    $('.bitmap_options input.time_interval').val(parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0]));
-   $('.bitmap_options input.time_window').val(parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]));
    $('.bitmap_options input.first_int').val(0);
    $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]));
 
@@ -143,8 +141,7 @@ $(document).ready(function() {
           last_ip = $('#bitmap_form input.last_ip').val(),
           first_int = $('#bitmap_form input.first_int').val(), 
           last_int = $('#bitmap_form input.last_int').val(),
-          time_interval = $('#bitmap_form input.time_interval').val(),
-          time_window = $('#bitmap_form input.time_window').val();
+          time_interval = $('#bitmap_form input.time_interval').val();
 
       var arguments = 'select_area=true' +
                       '&bitmap_type=' + type +
@@ -153,8 +150,7 @@ $(document).ready(function() {
                       '&last_ip=' +  last_ip +
                       '&first_int=' +  first_int +
                       '&last_int=' + last_int +
-                      '&time_interval=' + time_interval +
-                      '&time_window=' + time_window;
+                      '&time_interval=' + time_interval;
 
       http_GET("", set_selected_area, arguments);
 
@@ -165,7 +161,6 @@ $(document).ready(function() {
       document.getElementById('ip_range').innerHTML = first_ip + ' - ' + last_ip;
       document.getElementById('selected_int_range').innerHTML = first_int + ' - ' + last_int;
       document.getElementById('time_interval').innerHTML = time_interval + ' seconds';
-      document.getElementById('time_window').innerHTML = time_window + ' intervals';
    });
 
    function set_selected_area(http_request) {
@@ -210,8 +205,7 @@ $(document).ready(function() {
          limit = ip_max;
       } else if (classname === 'time_interval') {
          limit = interval_max;
-      } else if ((classname === 'time_window') || (classname ==='first_int') ||
-                 (classname ==='last_int')) {
+      } else if ((classname ==='first_int') || (classname ==='last_int')) {
          limit = window_max;
       }
      

@@ -330,8 +330,7 @@ def create_request_handler(args):
                if (('select_area' in query) and ('bitmap_type' in query) and
                    ('subnet_size' in query) and ('first_ip' in query) and
                    ('last_ip' in query) and ('first_int' in query) and
-                   ('last_int' in query) and ('time_interval' in query) and
-                   ('time_window' in query)):
+                   ('last_int' in query) and ('time_interval' in query)):
 
                   # Edit bitmap
                   self.edit_bitmap(query)
