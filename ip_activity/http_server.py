@@ -279,23 +279,34 @@ def create_request_handler(args):
       def get_ip_from_index(self, first_ip, index, granularity):
          ''' Calculates IP at index from first_ip considering granularity
              Handles IPs as strings '''
+         global g_ip_size
 
          # Shift IP, increment and shift back
+         # Expicitly state IPv6:
+         # > Python implicitly converts to IPv4 if the value fits in 32 bits
          if sys.version_info[0] == 2:
-            ip = ipaddress.ip_address(unicode(first_ip, "utf-8"))
+            if g_ip_size == 128:
+               ip = ipaddress.IPv6Address(unicode(first_ip, "utf-8"))
+            else:
+               ip = ipaddress.ip_address(unicode(first_ip, "utf-8"))
          else:
-            ip = ipaddress.ip_address(first_ip)
+            if g_ip_size == 128:
+               ip = ipaddress.IPv6Address(first_ip)
+            else:
+               ip = ipaddress.ip_address(first_ip)
 
-         #print(ip)
-         if ip.max_prefixlen == 128:
-            ip = ipaddress.IPv6Address((int(ip) >> (ip.max_prefixlen - granularity)))
-            #print(ip)
+         if g_ip_size == 128:
+            ip = ipaddress.IPv6Address((int(ip) >> (g_ip_size- granularity)))
          else:
-            ip = ipaddress.ip_address((int(ip) >> (ip.max_prefixlen - granularity)))
+            ip = ipaddress.ip_address((int(ip) >> (g_ip_size - granularity)))
+
          ip += index
-         #print(ip)
-         ip = ipaddress.ip_address((int(ip) << (ip.max_prefixlen - granularity)))
-         #print(ip)
+         
+         if g_ip_size == 128:
+            ip = ipaddress.IPv6Address((int(ip) << (g_ip_size - granularity)))
+         else:
+            ip = ipaddress.ip_address((int(ip) << (g_ip_size - granularity)))
+
 
          return str(ip)
 
