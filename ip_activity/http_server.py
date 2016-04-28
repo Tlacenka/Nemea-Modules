@@ -216,10 +216,11 @@ def create_request_handler(args):
          # height = address space, width = intervals in bitmap
          height = len(list(bitmap))
          width = len(bitmap[0])
+         print ('Creating image', height,'x', width)
 
          # Save bitmap to buffer
          img_buffer = []
-         for r in range(height):
+         for r in reversed(range(height)):
             for b in range(width):
                img_buffer.append(bitmap[r][b])
             #print(bitmap[r])
@@ -417,7 +418,7 @@ def create_request_handler(args):
                         x -= 1
                      if y == len(g_bitmap[0]):
                         y -= 1
-                     colour = ("white" if ((g_bitmap is not None) and g_bitmap[len(g_bitmap)-1-x][y]) else "black")
+                     colour = ("white" if ((g_bitmap is not None) and g_bitmap[x][y]) else "black")
                   else:
                      if x == len(g_selected_bitmap):
                         x -= 1

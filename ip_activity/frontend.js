@@ -294,7 +294,8 @@ $(document).ready(function() {
       // Change interval characteristics if range < time window
       if (parseInt($('#int_range').html().split(" ")[0]) <
          parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
-         document.getElementById("int_range").innerHTML = http_request.getResponseHeader('Interval_range') + " intervals";
+         int_range_max = http_request.getResponseHeader('Interval_range');
+         document.getElementById("int_range").innerHTML = int_range_max + " intervals";
       }
    }
 
