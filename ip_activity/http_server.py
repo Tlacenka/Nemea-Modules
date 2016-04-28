@@ -286,9 +286,16 @@ def create_request_handler(args):
          else:
             ip = ipaddress.ip_address(first_ip)
 
-         ip = ipaddress.ip_address((int(ip) >> (ip.max_prefixlen - granularity)))
+         #print(ip)
+         if ip.max_prefixlen == 128:
+            ip = ipaddress.IPv6Address((int(ip) >> (ip.max_prefixlen - granularity)))
+            #print(ip)
+         else:
+            ip = ipaddress.ip_address((int(ip) >> (ip.max_prefixlen - granularity)))
          ip += index
+         #print(ip)
          ip = ipaddress.ip_address((int(ip) << (ip.max_prefixlen - granularity)))
+         #print(ip)
 
          return str(ip)
 
@@ -302,7 +309,7 @@ def create_request_handler(args):
          else:
             ip1 = ipaddress.ip_address(first_ip)
             ip2 = ipaddress.ip_address(curr_ip)
-      
+
          # Adjust IPs to granularity, shift
          shift = ip1.max_prefixlen - granularity
 

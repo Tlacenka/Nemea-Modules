@@ -145,6 +145,37 @@ $(document).ready(function() {
           last_int = $('#bitmap_form input.last_int').val(),
           time_interval = $('#bitmap_form input.time_interval').val();
 
+      // Validate parameters
+      if (parseInt(subnet_size) > ip_max) {
+         alert('Subnet size must be between 0 and ' + ip_max);
+         return;
+      }
+      if (parseInt(time_interval) > interval_max) {
+         alert('Time interval is too big (maximum is one day - ' + interval_max + ' seconds)');
+         return;
+      }
+      if ((parseInt(first_int) < 0) || (parseInt(last_int) > int_range_max) ||
+          (parseInt(first_int) > parseInt(last_int))) {
+         alert('Intervals must be between 0 and ' + int_range_max + '.');
+         return;
+      }
+      if (parseInt(first_int) == parseInt(last_int)) {
+         alert('Size of interval range must be greater than 0.');
+         return;
+      }
+      if (!compare_ips(first_ip, last_ip) ||
+          !compare_ips($('.bitmap_stats td.range').html().split(" ")[0], first_ip) ||
+          !compare_ips(last_ip, $('.bitmap_stats td.range').html().split(" ")[2])) {
+         alert('IPs muset be between ' + $('.bitmap_stats td.range').html().split(" ")[0] +
+              ' and ' + $('.bitmap_stats td.range').html().split(" ")[2]);
+         return;
+      }
+      if (first_ip == last_ip) {
+         alert('Number of IP range must be greater than 0.');
+         return;
+      }
+
+      // Send GET request
       var arguments = 'select_area=true' +
                       '&bitmap_type=' + type +
                       '&subnet_size=' +  subnet_size +
@@ -378,16 +409,15 @@ $(document).ready(function() {
       down_int = parseInt($('#origin_curr_interval').html());
    });
 
-   // Returns statement, if ip1 < ip2
+   // Returns statement, if ip1 <= ip2
    function compare_ips(ip1, ip2) {
 
       // Compare IPs
       if (ip_version == 4) {
-         console.log(ip1 + " " + ip2);
          var ip1_list = ip1.split('.');
          var ip2_list = ip2.split('.');
          var len = ip1_list.length;
-         console.log(ip1_list + " " + ip2_list);
+
          for (var i = 0; i < len; i++) {
             if (parseInt(ip1_list[i]) < parseInt(ip2_list[i])) {
                return true;
