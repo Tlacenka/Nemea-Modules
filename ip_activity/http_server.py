@@ -54,13 +54,14 @@ import ipaddress
 import logging
 import math
 import os
-from PIL import Image
+from PIL import Image # Pillow needed for compatibility
 import signal
 import struct
 import yaml # pyyaml
 import sys
 
 # Python 2.x BaseHTTPServer is in http.server in Python 3.x
+# Python 2.x PIL.Image is in Image in Python 3.x
 if sys.version_info[0] == 2:
    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 else:
@@ -102,60 +103,75 @@ g_selected_time_interval = 0
 
 g_selected_bitmap = None
 
+def get_ip_from_index(first_ip, index, granularity):
+   ''' Calculates IP at index from first_ip considering granularity
+       Handles IPs as strings '''
+   global g_ip_size
+
+   # Shift IP, increment and shift back
+   # Expicitly state IPv6:
+   # > Python implicitly converts to IPv4 if the value fits in 32 bits
+   if sys.version_info[0] == 2:
+      if g_ip_size == 128:
+         ip = ipaddress.IPv6Address(unicode(first_ip, "utf-8"))
+      else:
+         ip = ipaddress.ip_address(unicode(first_ip, "utf-8"))
+   else:
+      if g_ip_size == 128:
+         ip = ipaddress.IPv6Address(first_ip)
+      else:
+         ip = ipaddress.ip_address(first_ip)
+
+   if g_ip_size == 128:
+      ip = ipaddress.IPv6Address((int(ip) >> (g_ip_size- granularity)))
+   else:
+      ip = ipaddress.ip_address((int(ip) >> (g_ip_size - granularity)))
+
+   ip += index
+   
+   if g_ip_size == 128:
+      ip = ipaddress.IPv6Address((int(ip) << (g_ip_size - granularity)))
+   else:
+      ip = ipaddress.ip_address((int(ip) << (g_ip_size - granularity)))
+
+
+   return str(ip)
+
+def get_index_from_ip(first_ip, curr_ip, granularity):
+   ''' Calculates offset from first ip to current one (passed as strings) '''
+   global g_ip_size
+
+   # Get IPs
+   if sys.version_info[0] == 2:
+      if g_ip_size == 128:
+         ip1 = ipaddress.IPv6Address(unicode(first_ip, "utf-8"))
+         ip2 = ipaddress.IPv6Address(unicode(curr_ip, "utf-8"))
+      else:
+         ip1 = ipaddress.ip_address(unicode(first_ip, "utf-8"))
+         ip2 = ipaddress.ip_address(unicode(curr_ip, "utf-8"))
+   else:
+      if g_ip_size == 128: 
+         ip1 = ipaddress.IPv6Address(first_ip)
+         ip2 = ipaddress.IPv6Address(curr_ip)
+      else:
+         ip1 = ipaddress.ip_address(first_ip)
+         ip2 = ipaddress.ip_address(curr_ip)
+
+   # Adjust IPs to granularity, shift
+   shift = ip1.max_prefixlen - granularity
+
+   shifted_1 = ipaddress.ip_address(int(ip1) >> shift)
+   shifted_2 = ipaddress.ip_address(int(ip2) >> shift)
+
+   # Get index
+   return int(shifted_2) - int(shifted_1)
+
 # SIGTERM
 def sigterm_handler(signal, frame):
     sys.exit(0)
 
 def create_request_handler(args):
-   ''' Creates class for handling requests, adds needed variables '''
-   global g_first_ip, g_last_ip, g_ip_size, g_granularity, g_bit_vector_size
-   global g_byte_vector_size, g_time_interval, g_time_window, g_bitmap
-
-   # Read configuration file
-   try:
-      with open(args['config'], 'r') as fd:
-         config_file = yaml.load(fd.read())
-   except IOError:
-      print('File ' + args['config'] + ' could not be opened.', file=sys.stderr)
-      sys.exit(1)
-
-   # Check if node with filename exists:
-   if args['filename'] not in config_file:
-      print('Bitmap files not found.', file=sys.stderr)
-      sys.exit(1) 
-
-   # Check if node contains required keys
-   if (not(set(['time', 'addresses'])<= set(config_file[args['filename']].keys())) or
-      not(set(['first', 'last', 'granularity']) <= set(config_file[args['filename']]['addresses'].keys())) or
-      not(set(['granularity', 'intervals']) <= set(config_file[args['filename']]['time'].keys()))):
-      print('Configuration file structure is invalid.', file=sys.stderr)
-
-   # Get IPs
-   if sys.version_info[0] == 2:
-      g_first_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['first'],
-                                                  "utf-8"))
-      g_last_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['last'],
-                                                 "utf-8"))
-
-   else:
-      g_first_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['first'])
-
-      g_last_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['last'])
-
-   g_granularity = int(config_file[args['filename']]['addresses']['granularity'])
-
-   # Adjust IPs to granularity
-   g_ip_size = g_first_ip.max_prefixlen
-   shifted_first = ipaddress.ip_address((int(g_first_ip) >> (g_ip_size - g_granularity)))
-   shifted_last = ipaddress.ip_address((int(g_last_ip) >> (g_ip_size - g_granularity)))
-
-   # Get vector size
-   g_bit_vector_size = int(shifted_last) - int(shifted_first)
-   g_byte_vector_size = int(math.ceil(g_bit_vector_size / 8))
-
-   # Get time window and interval
-   g_time_window = int(config_file[args['filename']]['time']['intervals'])
-   g_time_interval = int(config_file[args['filename']]['time']['granularity'])
+   ''' Creates class for handling requests'''
 
    # Create additional attributes and methods in handler
    class My_RequestHandler(BaseHTTPRequestHandler):
@@ -167,7 +183,7 @@ def create_request_handler(args):
          global g_byte_vector_size, g_bit_vector_size
          # xxd [[-b] bitmap_name
 
-         filesize = os.path.getsize(filename)
+         filesize = os.path.getsize(self.arguments['dir'] + '/' + filename)
          rows = int(filesize / g_byte_vector_size)
 
          # Temporary bitmap for rows vectors
@@ -179,13 +195,13 @@ def create_request_handler(args):
          # Reads file row by row (by intervals), fill tmp_bitmap
          # 1 row == the whole address space in 1 time interval
          try:
-            with open(filename, 'rb') as fd:
+            with open(self.arguments['dir'] + '/' + filename, 'rb') as fd:
                for r in range(rows):
                   byte_vector = fd.read(g_byte_vector_size)
                   tmp_bitmap[r].frombytes(byte_vector)
 
          except IOError:
-            print('File ' + filename + ' could not be opened.')
+            print('File ' + self.arguments['dir'] + '/' + filename + ' could not be opened.')
             sys.exit(1)
 
          # Remove padding from the end of the vector if needed
@@ -251,8 +267,8 @@ def create_request_handler(args):
       
 
          # Adjust IP range (deleting rows)
-         ip1_index = self.get_index_from_ip(str(g_first_ip), query['first_ip'][0], int(query['subnet_size'][0]))
-         ip2_index = self.get_index_from_ip(str(g_first_ip), query['last_ip'][0], int(query['subnet_size'][0]))
+         ip1_index = get_index_from_ip(str(g_first_ip), query['first_ip'][0], int(query['subnet_size'][0]))
+         ip2_index = get_index_from_ip(str(g_first_ip), query['last_ip'][0], int(query['subnet_size'][0]))
          
          # Save IP range length
          g_selected_bit_vector_size = ip2_index - ip1_index
@@ -277,61 +293,6 @@ def create_request_handler(args):
 
          g_selected_bitmap = tmp_bitmap
 
-      def get_ip_from_index(self, first_ip, index, granularity):
-         ''' Calculates IP at index from first_ip considering granularity
-             Handles IPs as strings '''
-         global g_ip_size
-
-         # Shift IP, increment and shift back
-         # Expicitly state IPv6:
-         # > Python implicitly converts to IPv4 if the value fits in 32 bits
-         if sys.version_info[0] == 2:
-            if g_ip_size == 128:
-               ip = ipaddress.IPv6Address(unicode(first_ip, "utf-8"))
-            else:
-               ip = ipaddress.ip_address(unicode(first_ip, "utf-8"))
-         else:
-            if g_ip_size == 128:
-               ip = ipaddress.IPv6Address(first_ip)
-            else:
-               ip = ipaddress.ip_address(first_ip)
-
-         if g_ip_size == 128:
-            ip = ipaddress.IPv6Address((int(ip) >> (g_ip_size- granularity)))
-         else:
-            ip = ipaddress.ip_address((int(ip) >> (g_ip_size - granularity)))
-
-         ip += index
-         
-         if g_ip_size == 128:
-            ip = ipaddress.IPv6Address((int(ip) << (g_ip_size - granularity)))
-         else:
-            ip = ipaddress.ip_address((int(ip) << (g_ip_size - granularity)))
-
-
-         return str(ip)
-
-      def get_index_from_ip(self, first_ip, curr_ip, granularity):
-         ''' Calculates offset from first ip to current one (passed as strings) '''
-
-         # Get IPs
-         if sys.version_info[0] == 2:
-            ip1 = ipaddress.ip_address(unicode(first_ip, "utf-8"))
-            ip2 = ipaddress.ip_address(unicode(curr_ip, "utf-8"))
-         else:
-            ip1 = ipaddress.ip_address(first_ip)
-            ip2 = ipaddress.ip_address(curr_ip)
-
-         # Adjust IPs to granularity, shift
-         shift = ip1.max_prefixlen - granularity
-
-         shifted_1 = ipaddress.ip_address(int(ip1) >> shift)
-         shifted_2 = ipaddress.ip_address(int(ip2) >> shift)
-      
-         # Get index
-         return int(shifted_2) - int(shifted_1)
-
-
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
          global g_granularity, g_first_ip, g_last_ip, g_time_interval
@@ -347,7 +308,7 @@ def create_request_handler(args):
 
             # Open main HTML file
             try:
-               with open(self.arguments['dir'] + '/frontend.html', 'r') as fd:
+               with open('frontend.html', 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
@@ -406,26 +367,20 @@ def create_request_handler(args):
                   tmp_granularity = int(query['granularity'][0])
                   tmp_index = int(query['ip_index'][0])
                   bitmap_type = query['bitmap_type'][0]
-                  tmp_ip = self.get_ip_from_index(tmp_ip, tmp_index, tmp_granularity)
+                  tmp_ip = get_ip_from_index(tmp_ip, tmp_index, tmp_granularity)
 
                   # Get colour at coordinates
                   x = tmp_index
                   y = int(query['interval'][0])
 
-                  # TODO: Why is the x upside down?
-                  if bitmap_type == 'origin':
-                     if x == len(g_bitmap):
-                        x -= 1
-                     if y == len(g_bitmap[0]):
-                        y -= 1
-                     colour = ("white" if ((g_bitmap is not None) and g_bitmap[x][y]) else "black")
-                  else:
-                     if x == len(g_selected_bitmap):
-                        x -= 1
-                     if y == len(g_selected_bitmap[0]):
-                        y -= 1
-                     colour = ("white" if ((g_selected_bitmap is not None) and g_selected_bitmap[len(g_selected_bitmap)-1-x][y]) else "black")
+                  tmp_bitmap = g_bitmap if bitmap_type == 'origin' else g_selected_bitmap
 
+                  # Decrease to avoid overflow
+                  if x >= len(tmp_bitmap):
+                     x = len(tmp_bitmap) - 1
+                  if y >= len(tmp_bitmap[0]):
+                     y = len(tmp_bitmap[0]) - 1
+                  colour = ("white" if ((tmp_bitmap is not None) and tmp_bitmap[x][y]) else "black")
 
                   # Send needed information
                   self.send_response(200)
@@ -469,7 +424,7 @@ def create_request_handler(args):
 
             # Send appropriate file
             try:
-               with open(self.arguments['dir'] + self.path, open_mode) as fd:
+               with open('.' + self.path, open_mode) as fd:
                   self.send_response(200)
                   self.send_header('Content-type', content_type)
 
@@ -487,7 +442,7 @@ def create_request_handler(args):
                      self.wfile.write(fd.read())
 
             except IOError:
-               print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               print('File .' + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
 
@@ -496,6 +451,8 @@ def create_request_handler(args):
 
 def main():
    ''' Main function for the lifecycle of the server. '''
+   global g_first_ip, g_last_ip, g_ip_size, g_granularity, g_bit_vector_size
+   global g_byte_vector_size, g_time_interval, g_time_window, g_bitmap
 
    # Parse arguments
    parser = argparse.ArgumentParser()
@@ -504,7 +461,7 @@ def main():
    parser.add_argument('-H', '--hostname', type=str, default='localhost',
                        help='Server hostname (localhost by default).')
    parser.add_argument('-d', '--dir', type=str, default='.',
-                       help='Path to directory with web client files (HTML, CSS, JS) (current directory by default).')
+                       help='Path to directory with bitmaps and configuration file (current directory by default).')
    parser.add_argument('-c', '--config', type=str, default='config.yaml',
                        help='Path to configuration file (current directory by default).')
    parser.add_argument('-f', '--filename', type=str, default='bitmap',
@@ -523,6 +480,50 @@ def main():
    if (args['port'] > 65535) or (args['port'] < 1): # Skip registered?
       print('Port not within allowed range.', file=sys.stderr)
       sys.exit(1)
+
+   # Read configuration file
+   try:
+      with open(args['dir'] + '/' + args['config'], 'r') as fd:
+         config_file = yaml.load(fd.read())
+   except IOError:
+      print('File ' + args['dir'] + args['config'] + ' could not be opened.', file=sys.stderr)
+      sys.exit(1)
+
+   # Check if node with filename exists:
+   if args['filename'] not in config_file:
+      print('Bitmap files not found.', file=sys.stderr)
+      sys.exit(1) 
+
+   # Check if node contains required keys
+   if (not(set(['time', 'addresses'])<= set(config_file[args['filename']].keys())) or
+      not(set(['first', 'last', 'granularity']) <= set(config_file[args['filename']]['addresses'].keys())) or
+      not(set(['granularity', 'intervals']) <= set(config_file[args['filename']]['time'].keys()))):
+      print('Configuration file structure is invalid.', file=sys.stderr)
+
+   # Get needed values
+
+   # Get IPs
+   if sys.version_info[0] == 2:
+      g_first_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['first'],
+                                                  "utf-8"))
+      g_last_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['last'],
+                                                 "utf-8"))
+
+   else:
+      g_first_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['first'])
+
+      g_last_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['last'])
+
+   g_granularity = int(config_file[args['filename']]['addresses']['granularity'])
+   g_ip_size = g_first_ip.max_prefixlen
+
+   g_bit_vector_size  = get_index_from_ip(str(g_first_ip), str(g_last_ip), g_granularity)
+   g_byte_vector_size = int(math.ceil(g_bit_vector_size / 8))
+
+   # Get time window and interval
+   g_time_window = int(config_file[args['filename']]['time']['intervals'])
+   g_time_interval = int(config_file[args['filename']]['time']['granularity'])
+
 
    # Create the server
    ip_activity_RequestHandler = create_request_handler(args)
