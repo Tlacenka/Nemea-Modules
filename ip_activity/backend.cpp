@@ -248,6 +248,8 @@ void binary_write(std::string filename, std::vector<bool> bits,
    std::ostringstream name;
    name << filename;
 
+   std::cout << "Writing to file" << std::endl;
+
    bitmap.open(name.str().c_str(), mode);
 
    // If rewriting is set, find the offset first
@@ -271,6 +273,9 @@ void binary_write(std::string filename, std::vector<bool> bits,
    }
 
    bitmap.close();
+
+   std::cout << "Writing to file done" << std::endl;
+
    return;
 }
 
@@ -395,9 +400,9 @@ int main(int argc, char **argv)
       return 1;
    }
    // Get time
-   //std::time_t start_time = std::time(NULL);
-   //struct tm* time_struct = localtime(&start_time);
-   //char str_time[20];
+   std::time_t start_time = std::time(NULL);
+   struct tm* time_struct = localtime(&start_time);
+   char str_time[20];
 
 
    /** Create/open YAML configuration file  and bitmaps */
@@ -412,7 +417,7 @@ int main(int argc, char **argv)
    YAML::Node config_file = YAML::LoadFile("config.yaml");
 
    // Set bitmap options for server
-   config_file[filename]["addresses"]["version"] = (ip_version == 4) ? "IPv4" : "IPv6";
+   //config_file[filename]["addresses"]["version"] = (ip_version == 4) ? "IPv4" : "IPv6";
    config_file[filename]["addresses"]["granularity"] = granularity;
 
    // Remove first and last if they exist (when rewriting, ! <!> appeared)
@@ -422,11 +427,15 @@ int main(int argc, char **argv)
    if (config_file[filename]["addresses"]["last"]) {
       config_file[filename]["addresses"].remove("last");
    }
+   if (config_file[filename]["time"]["end"]) {
+      config_file[filename]["time"].remove("end");
+   }
    config_file[filename]["addresses"]["first"] = range[FIRST_ADDR].toString();
    config_file[filename]["addresses"]["last"] = range[LAST_ADDR].toString();
 
    config_file[filename]["time"]["granularity"] = interval;
-   //std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
+   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
+   config_file[filename]["time"]["beginning"] = str_time;
    config_file[filename]["time"]["intervals"] = window;
 
     std::ofstream fout("config.yaml");
@@ -452,7 +461,7 @@ int main(int argc, char **argv)
    convert_to_granularity(&range[FIRST_ADDR], granularity);
    convert_to_granularity(&range[LAST_ADDR], granularity);
 
-   //std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
+   std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
 
 
    // Get size of bit vector
@@ -462,6 +471,8 @@ int main(int argc, char **argv)
       fprintf(stderr, "Error: Address space must be between 1 and 1000 subnets.\n");
       return 1;
    }
+
+   std::cout << vector_size << std::endl;
 
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
    bool rewrite = false;
@@ -520,7 +531,7 @@ int main(int argc, char **argv)
             binary_write(filename + suffix[i], bits[i], mode, intervals);
             bits[i].assign(bits[i].size(), 0);
          }
-
+         std::cout << "Stored to " << intervals << std::endl;
          // When the buffer is full, turn off appending
          /** Find out if offset without append would do */
          if (!rewrite) {
@@ -529,19 +540,35 @@ int main(int argc, char **argv)
                mode = mode & (~(std::ios_base::app));
             }
          }
-         //std::cout << intervals;
          save_vectors = false;
          intervals = (intervals + 1) % window;
          alarm(interval);
       }
 
    }
-   //std::cout << intervals;
+
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
       binary_write(filename + suffix[i], bits[i], mode, intervals);
+      std::cout << "Last stored to " << intervals << std::endl;
    }
-   
+
+   // Store end time
+   // Get time
+   std::time_t end_time = std::time(NULL);
+   struct tm* end_time_struct = localtime(&end_time);
+   char str_end_time[20];
+   std::strftime(str_end_time, sizeof(str_end_time), "%d-%m-%Y %H:%M:%S", end_time_struct);
+
+   // Load time to config file
+   YAML::Node config_file = YAML::LoadFile("config.yaml");
+   config_file[filename]["time"]["end"] = str_end_time;
+
+   // Save changes
+   std::ofstream fout2("config.yaml");
+   fout2 << config_file;
+   fout2.close();
+
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
    FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
