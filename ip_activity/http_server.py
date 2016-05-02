@@ -50,6 +50,7 @@ from bitarray import bitarray
 from bs4 import BeautifulSoup # https://www.crummy.com/software/BeautifulSoup/
 import cgi
 import copy
+import datetime
 import ipaddress
 import logging
 import math
@@ -57,6 +58,7 @@ import os
 from PIL import Image # Pillow needed for compatibility
 import signal
 import struct
+import time
 import yaml # pyyaml
 import sys
 
@@ -86,10 +88,13 @@ g_byte_vector_size = 0
 #Time variables
 g_time_interval = 0
 g_time_window = 0
+g_time_start = None
+g_time_end = None
 
 
 #Bitmaps
 g_bitmap = None
+g_selected_bitmap = None
 
 # Selected area
 g_selected_first_ip = None
@@ -101,7 +106,8 @@ g_selected_first_int = 0
 g_selected_last_int = 0
 g_selected_time_interval = 0
 
-g_selected_bitmap = None
+# Mode
+g_mode = ''
 
 def get_ip_from_index(first_ip, index, granularity):
    ''' Calculates IP at index from first_ip considering granularity
@@ -180,7 +186,7 @@ def create_request_handler(args):
 
       def binary_read(self, filename):
          ''' Returns 2D bitarray of updated, transposed bitmap '''
-         global g_byte_vector_size, g_bit_vector_size
+         global g_byte_vector_size, g_bit_vector_size, g_time_start
          # xxd [[-b] bitmap_name
 
          filesize = os.path.getsize(self.arguments['dir'] + '/' + filename)
@@ -221,6 +227,12 @@ def create_request_handler(args):
          for r in range(rows):
             for b in range(g_bit_vector_size):
                transp_bitmap[b].append(tmp_bitmap[r][b])
+
+         # Shift by number of intervals from the beginning if online mode
+         index = (datetime.datetime.now() - g_time_start).total_seconds()
+         print("seconds from the start:", index)
+         #for r in range(rows):
+         #   transp_bitmap[r] = 
 
          return transp_bitmap
 
@@ -296,15 +308,15 @@ def create_request_handler(args):
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
          global g_granularity, g_first_ip, g_last_ip, g_time_interval
-         global g_time_window, g_bitmap, g_selected_bitmap
+         global g_time_window, g_bitmap, g_selected_bitmap, g_mode
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
             # Load source bitmap
-            g_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
+            #g_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
             #for b in range(g_bit_vector_size):
             #   print(g_bitmap[b])
-            self.create_image(g_bitmap, "image_s")
+            #self.create_image(g_bitmap, "image_s")
 
             # Open main HTML file
             try:
@@ -319,9 +331,10 @@ def create_request_handler(args):
                   # Insert characteristics
                   html_file.find('td', 'subnet_size').append("/" + str(g_granularity))
                   html_file.find('td', 'range').append(str(g_first_ip) + " - " + str(g_last_ip))
-                  html_file.find('td', 'int_range').append(str(len(g_bitmap[0])) + " intervals")
+                  html_file.find('td', 'int_range').append(str(0 if g_bitmap == None else len(g_bitmap[0])) + " intervals")
                   html_file.find('td', 'time_interval').append(str(g_time_interval) + " seconds")
                   html_file.find('td', 'time_window').append(str(g_time_window) + " intervals")
+                  html_file.find('td', 'mode').append(g_mode)
 
                   #new_node = html_file.new_tag('td', src='image_s.png')
                   #html_node.append(new_node)
@@ -428,9 +441,11 @@ def create_request_handler(args):
                   self.send_response(200)
                   self.send_header('Content-type', content_type)
 
+                  # Send updated interval range and mode
                   if (query is not None) and ('update' in query):
                      self.send_header('Interval_range',
                                      str(len(g_bitmap[0]) if ((g_bitmap is not None) and (len(g_bitmap) > 0)) else 0))
+                     self.send_header('Mode', g_mode)
 
                   self.end_headers()
 
@@ -453,6 +468,7 @@ def main():
    ''' Main function for the lifecycle of the server. '''
    global g_first_ip, g_last_ip, g_ip_size, g_granularity, g_bit_vector_size
    global g_byte_vector_size, g_time_interval, g_time_window, g_bitmap
+   global g_time_start, g_time_end, g_mode
 
    # Parse arguments
    parser = argparse.ArgumentParser()
@@ -497,8 +513,14 @@ def main():
    # Check if node contains required keys
    if (not(set(['time', 'addresses'])<= set(config_file[args['filename']].keys())) or
       not(set(['first', 'last', 'granularity']) <= set(config_file[args['filename']]['addresses'].keys())) or
-      not(set(['granularity', 'intervals']) <= set(config_file[args['filename']]['time'].keys()))):
+      not(set(['granularity', 'intervals', 'start']) <= set(config_file[args['filename']]['time'].keys()))):
       print('Configuration file structure is invalid.', file=sys.stderr)
+      sys.exit(1)
+
+   if ('end' in config_file[args['filename']]['time']):
+      g_mode = 'offline'
+   else:
+      g_mode = 'online'
 
    # Get needed values
 
@@ -523,7 +545,9 @@ def main():
    # Get time window and interval
    g_time_window = int(config_file[args['filename']]['time']['intervals'])
    g_time_interval = int(config_file[args['filename']]['time']['granularity'])
-
+   g_time_start = datetime.datetime.strptime(config_file[args['filename']]['time']['start'], '%d-%m-%Y %H:%M:%S')
+   if g_mode == 'offline':
+      g_time_end = datetime.datetime.strptime(config_file[args['filename']]['time']['end'], '%d-%m-%Y %H:%M:%S')
 
    # Create the server
    ip_activity_RequestHandler = create_request_handler(args)

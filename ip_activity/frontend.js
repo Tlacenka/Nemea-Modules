@@ -8,8 +8,17 @@
 // Main function
 $(document).ready(function() {
 
-   // Start updating bitmap
-   var timeout_handler = auto_update();
+   // Start updating bitmap if online mode
+   var timeout_handler = null;
+   var mode = '';
+   if ($('.bitmap_stats td.mode').html() == 'online') {
+      mode = 'online';
+      timeout_handler = auto_update();
+   } else {
+      // Only update bitmap once
+      mode = 'offline';
+      update_bitmap();
+   }
 
    // TODO with each update, decrease chosen interval range? or...?
 
@@ -63,8 +72,14 @@ $(document).ready(function() {
          $(this).addClass('chosen_type');
 
          // Update bitmap immediately
-         clearTimeout(timeout_handler);
-         auto_update();
+         if (mode == 'online') {
+            // Restart automatic update
+            clearTimeout(timeout_handler);
+            auto_update();
+         } else {
+            // Send one request
+            update_bitmap();
+         }
       }
    });
 
@@ -296,6 +311,14 @@ $(document).ready(function() {
          parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
          int_range_max = http_request.getResponseHeader('Interval_range');
          document.getElementById("int_range").innerHTML = int_range_max + " intervals";
+      }
+      // Change online -> offline only
+      if (($('.bitmap_stats td.mode').html() == 'online') &&
+          (http_request.getResponseHeader('Mode') == 'offline')) {
+         document.getElementById("mode").innerHTML = http_request.getResponseHeader('Mode');
+         // Cancel periodic update
+         clearTimeout(timeout_handler);
+         
       }
    }
 
