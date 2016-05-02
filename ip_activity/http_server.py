@@ -189,7 +189,15 @@ def create_request_handler(args):
          global g_byte_vector_size, g_bit_vector_size, g_time_start
          # xxd [[-b] bitmap_name
 
-         filesize = os.path.getsize(self.arguments['dir'] + '/' + filename)
+         # Check if file exists and its size is bigger than 0
+         if os.path.isfile(self.arguments['dir'] + '/' + filename):
+            filesize = os.path.getsize(self.arguments['dir'] + '/' + filename)
+         else:
+            return None
+
+         if filesize == 0:
+            return None
+            
          rows = int(filesize / g_byte_vector_size)
 
          # Temporary bitmap for rows vectors
@@ -264,6 +272,10 @@ def create_request_handler(args):
          global g_bitmap, g_selected_bitmap, g_first_ip
          global g_selected_first_ip, g_selected_last_ip, g_selected_bit_vector_size
 
+         # Check if original bitmap exists
+         if g_bitmap is None:
+            return
+
          tmp_bitmap = copy.deepcopy(g_bitmap)
 
          # Do magic here
@@ -309,6 +321,18 @@ def create_request_handler(args):
          ''' Handle a HTTP GET request. '''
          global g_granularity, g_first_ip, g_last_ip, g_time_interval
          global g_time_window, g_bitmap, g_selected_bitmap, g_mode
+
+         # Check if mode is online
+         if g_mode == 'online':
+            # Check if config file has "end"
+            try:
+               with open(self.arguments['dir'] + '/' + self.arguments['config'], 'r') as fd:
+                  config_file = yaml.load(fd.read())
+            except IOError:
+               print('File ' + self.arguemnts['dir'] + '/' + self.arguments['config'] + ' could not be opened.', file=sys.stderr)
+               sys.exit(1)
+            if ('end' in config_file[args['filename']]['time']):
+               g_mode = 'offline'
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
@@ -367,8 +391,9 @@ def create_request_handler(args):
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
                   g_bitmap = self.binary_read(self.arguments['filename'] +
-                                               '_' + bmap_type + '.bmap')
-                  self.create_image(g_bitmap, 'image_' + bmap_type)
+                                             '_' + bmap_type + '.bmap')
+                  if g_bitmap is not None:
+                     self.create_image(g_bitmap, 'image_' + bmap_type)
 
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
@@ -411,10 +436,10 @@ def create_request_handler(args):
 
                   # Edit bitmap
                   self.edit_bitmap(query)
-                  self.create_image(g_selected_bitmap, 'selected')
-
-                  # Set path to selected image
-                  self.path = '/images/selected.png' # TODO will it be changed?
+                  if g_selected_bitmap is not None:
+                     self.create_image(g_selected_bitmap, 'selected')
+                     # Set path to selected image
+                     self.path = '/images/selected.png' # TODO will it be changed?
 
             print('PATH ' + self.path)
 
@@ -435,31 +460,41 @@ def create_request_handler(args):
                self.send_response(404)
                sys.exit(1)
 
-            # Send appropriate file
-            try:
-               with open('.' + self.path, open_mode) as fd:
-                  self.send_response(200)
-                  self.send_header('Content-type', content_type)
-
-                  # Send updated interval range and mode
-                  if (query is not None) and ('update' in query):
-                     self.send_header('Interval_range',
-                                     str(len(g_bitmap[0]) if ((g_bitmap is not None) and (len(g_bitmap) > 0)) else 0))
-                     self.send_header('Mode', g_mode)
-
-                  self.end_headers()
-
-                  # If image is sent via AJAX, encode to base64
-                  if ((content_type == 'image/png') and (query is not None) and
-                     (('update' in query) or ('select_area' in query))):
-                     self.wfile.write(base64.b64encode(fd.read()))
-                  else:
-                     self.wfile.write(fd.read())
-
-            except IOError:
-               print('File .' + self.path + ' could not be opened.', file=sys.stderr)
-               self.send_response(404)
-               sys.exit(1)
+            # If bitmaps do not exist
+            if ((query is not None) and
+                ((('update' in query) and (g_bitmap is None)) or
+                 (('selected_area' in query) and (g_selected_bitmap is None)))):
+               self.send_response(200)
+               self.send_header('Content-type', 'text/plain')
+               self.send_header('Bitmap', 'none')
+               self.end_headers()
+            else:
+               # Send appropriate file if exists
+               try:
+                  with open('.' + self.path, open_mode) as fd:
+                     self.send_response(200)
+                     self.send_header('Content-type', content_type)
+   
+                     # Send updated interval range and mode
+                     if (query is not None) and ('update' in query):
+                        self.send_header('Interval_range',
+                                        str(len(g_bitmap[0]) if ((g_bitmap is not None) and (len(g_bitmap) > 0)) else 0))
+                        self.send_header('Mode', g_mode)
+   
+                     # If image is sent via AJAX, encode to base64
+                     if ((content_type == 'image/png') and (query is not None) and
+                        (('update' in query) or ('select_area' in query))):
+                        self.send_header('Bitmap', 'ok')
+                        self.end_headers()
+                        self.wfile.write(base64.b64encode(fd.read()))
+                     else:
+                        self.end_headers()
+                        self.wfile.write(fd.read())
+   
+               except IOError:
+                  print('File .' + self.path + ' could not be opened.', file=sys.stderr)
+                  self.send_response(404)
+                  sys.exit(1)
 
 
    return My_RequestHandler
@@ -502,7 +537,7 @@ def main():
       with open(args['dir'] + '/' + args['config'], 'r') as fd:
          config_file = yaml.load(fd.read())
    except IOError:
-      print('File ' + args['dir'] + args['config'] + ' could not be opened.', file=sys.stderr)
+      print('File ' + args['dir'] + '/' + args['config'] + ' could not be opened.', file=sys.stderr)
       sys.exit(1)
 
    # Check if node with filename exists:

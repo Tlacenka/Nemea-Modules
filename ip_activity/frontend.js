@@ -226,26 +226,28 @@ $(document).ready(function() {
 
    function set_selected_area(http_request) {
 
-      // Add selected section
-      $('#selected').css("display", "block");
-      $('#origin').css("padding-bottom", "0");
-
-      // Remove previous image if exists
-      if ($('#selected_area').has('img')) {
-         $('#selected_area img').remove();
+      if (http_request.getResponseHeader('Bitmap') === 'ok') {
+         // Add selected section
+         $('#selected').css("display", "block");
+         $('#origin').css("padding-bottom", "0");
+   
+         // Remove previous image if exists
+         if ($('#selected_area').has('img')) {
+            $('#selected_area img').remove();
+         }
+   
+         // Set selected area image
+         $('#selected_area').show();
+         $('#selected_area').html('<img class="hover_coords selected_area" src="data:image/png;base64,' + http_request.responseText + '" />');
+         $('#selected_area img').css({
+            'border': '1px solid SlateGray',
+            'display': 'block',
+            'margin': 'auto'
+         });
+         $('#selected_area').css({
+            'margin-top': '50px'
+         });
       }
-
-      // Set selected area image
-      $('#selected_area').show();
-      $('#selected_area').html('<img class="hover_coords selected_area" src="data:image/png;base64,' + http_request.responseText + '" />');
-      $('#selected_area img').css({
-         'border': '1px solid SlateGray',
-         'display': 'block',
-         'margin': 'auto'
-      });
-      $('#selected_area').css({
-         'margin-top': '50px'
-      });
    }
 
    // Change text in input
@@ -290,35 +292,37 @@ $(document).ready(function() {
       // TODO Cover first and last interval + IP > first cannot be greater than last
    });
 
-   // Set bitmap
+   // Set bitmap if sent
    function set_bitmap(http_request)
    {
       // Change image
-      $('#bitmap_inner').show();
-      $('#bitmap_inner img').remove();
-      $('#bitmap_inner').html('<img class="hover_coords origin" src="data:image/png;base64,' + http_request.responseText + '" />');
-      $('#bitmap_inner img').css({
-         'border': '1px solid SlateGray',
-         'display': 'block',
-         'margin': 'auto'
-      });
-      $('#bitmap_inner').css({
-         'margin-top': '50px'
-      });
+      if (http_request.getResponseHeader('Bitmap') === 'ok') {
+         $('#bitmap_inner').show();
+         $('#bitmap_inner img').remove();
+         $('#bitmap_inner').html('<img class="hover_coords origin" src="data:image/png;base64,' + http_request.responseText + '" />');
+         $('#bitmap_inner img').css({
+            'border': '1px solid SlateGray',
+            'display': 'block',
+            'margin': 'auto'
+         });
+         $('#bitmap_inner').css({
+            'margin-top': '50px'
+         });
 
-      // Change interval characteristics if range < time window
-      if (parseInt($('#int_range').html().split(" ")[0]) <
-         parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
-         int_range_max = http_request.getResponseHeader('Interval_range');
-         document.getElementById("int_range").innerHTML = int_range_max + " intervals";
-      }
-      // Change online -> offline only
-      if (($('.bitmap_stats td.mode').html() == 'online') &&
-          (http_request.getResponseHeader('Mode') == 'offline')) {
-         document.getElementById("mode").innerHTML = http_request.getResponseHeader('Mode');
-         // Cancel periodic update
-         clearTimeout(timeout_handler);
-         
+         // Change interval characteristics if range < time window
+         if (parseInt($('#int_range').html().split(" ")[0]) <
+            parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
+            int_range_max = http_request.getResponseHeader('Interval_range');
+            document.getElementById("int_range").innerHTML = int_range_max + " intervals";
+         }
+         // Change online -> offline only
+         if (($('.bitmap_stats td.mode').html() == 'online') &&
+             (http_request.getResponseHeader('Mode') == 'offline')) {
+            document.getElementById("mode").innerHTML = http_request.getResponseHeader('Mode');
+            // Cancel periodic update
+            clearTimeout(timeout_handler);
+            
+         }
       }
    }
 
