@@ -72,12 +72,14 @@ $(document).ready(function() {
          $(this).addClass('chosen_type');
 
          // Update bitmap immediately
-         if (mode == 'online') {
+         if (mode === 'online') {
+            console.log('online');
             // Restart automatic update
             clearTimeout(timeout_handler);
             auto_update();
          } else {
             // Send one request
+            console.log('offline');
             update_bitmap();
          }
       }
@@ -319,6 +321,8 @@ $(document).ready(function() {
          if (($('.bitmap_stats td.mode').html() == 'online') &&
              (http_request.getResponseHeader('Mode') == 'offline')) {
             document.getElementById("mode").innerHTML = http_request.getResponseHeader('Mode');
+            mode = 'offline';
+            console.log("change to offline");
             // Cancel periodic update
             clearTimeout(timeout_handler);
             
