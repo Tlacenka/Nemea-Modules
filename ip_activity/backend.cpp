@@ -589,9 +589,11 @@ int main(int argc, char **argv)
    time_struct = localtime(&time_raw);
    std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
 
-   // Load end time to config file
+   // Load end time and intervals to config file
    config_write(configname, std::vector<std::string>({filename,
                             "module", "end"}), time_str);
+   config_write(configname, std::vector<std::string>({filename,
+                            "time", "intervals"}), std::to_string(intervals));
 
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
