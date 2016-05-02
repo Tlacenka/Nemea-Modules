@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <typeinfo>
 
 #include <bitset>
 #include <ctime>
@@ -94,21 +95,24 @@ trap_module_info_t *module_info = NULL;
 #define MAX_WINDOW 1000
 #define MAX_VECTOR_SIZE 1000
 
+#define TIME_LEN 20
+
 /* Example: ./ip_activity -i "t:12345" ..... */
 
 #define MODULE_BASIC_INFO(BASIC) \
    BASIC("IP Activity module", "This module scans incoming flows and stores info about IP activity in a given range of IP.", 1,0)
 
 #define MODULE_PARAMS(PARAM) \
-   PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [sec]", required_argument, "uint32") \
-   PARAM('w', "time_window", "Time window for storing data to bitmap (default 100 intervals). [intervals]", required_argument, "uint32") \
-   PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
+   PARAM('c', "config", "Name + path to configuration file. (./config.yaml by default)", required_argument, "string") \
+   PARAM('f', "filename", "Name of bitmap files. (bitmap by default)", required_argument, "string") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
+   PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
    PARAM('r', "range", "Range of processed IP addresses that must correspond format (First address,Last address).", required_argument, "string") \
-   PARAM('f', "filename", "Name of bitmap files. (bitmap by default)", required_argument, "string")
+   PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [sec]", required_argument, "uint32") \
+   PARAM('w', "time_window", "Time window for storing data to bitmap (default 100 intervals). [intervals]", required_argument, "uint32")
+   
 
 static int stop = 0;
-static int save_vectors = 0;
 
 // Declaration of structure prototype for printing progress
 NMCM_PROGRESS_DECL;
@@ -117,35 +121,19 @@ NMCM_PROGRESS_DECL;
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
 
 /**
- * \brief SIGALRM handler
- * Sets flag for storing data to bitmap every interval.
- */
-void IPactivity_signal_handler (int sig) {
-   switch (sig) {
-      case SIGALRM:
-         save_vectors = 1;
-         break;
-      default:
-         break;
-   }
-}
-
-/**
  * \brief Converts address based on chosen granularity (shifts to right)
  * \param [in] addr IP address to be checked.
  * \return True upon success.
  */
 void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
-   int version = addr->get_version();
-   
 
+   int version = addr->get_version();
    // How many zeros at the end
    int zeros = (version == 4) ? (IPV4_BITS - granularity) : (IPV6_BITS - granularity);
 
    if (zeros == 0) {
       return;
    }
-   //std::cout << "before: " << addr->toString() << std::endl;
 
    // IPv4
    if (version == 4) {
@@ -162,8 +150,6 @@ void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
       tmp_ip >>= zeros;
       addr->set_bits_ipv6(tmp_ip);
    }
-
-   //std::cout << "after: " << addr->toString() << std::endl;
    return;
 }
 
@@ -181,7 +167,6 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
        (addr1.get_version() == 0)) {
       return 0;
    }
-
    int version = addr1.get_version();
 
    if (addr1 > addr2) {
@@ -192,13 +177,10 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
       // IPv4, substract uint32_t
       uint32_t ip1 = addr1.get_ipv4_int();
       uint32_t ip2 = addr2.get_ipv4_int();
-
-      //std::cout << ip2-ip1 << std::endl;
       return ip2-ip1;
 
    } else {
       // IPv6, substract uint32_t 4x
-      // Substraction result
       std::vector<uint32_t> ip1 = addr1.get_ipv6_int();
       std::vector<uint32_t> ip2 = addr2.get_ipv6_int();
       std::vector<uint32_t> substr;
@@ -221,13 +203,10 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
             borrow = 1;
          }
       }
-
-      // Since the maximum allowed value is definitely below 2^32,
-      // only the last 4 bytes can be occupied
+      // Max allowed value is below 2^32 -> only the last part can be occupied
       if (substr[0] || substr[1] || substr[2]) {
          return 0;
       }
-
       return substr[3];
    }
 }
@@ -240,7 +219,6 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
  * \param [in]  mode   Open mode.
  */
 /*http://stackoverflow.com/questions/29623605/how-to-dump-stdvectorbool-in-a-binary-file*/
-/** Maybe use dynamic bitset? */
 void binary_write(std::string filename, std::vector<bool> bits,
                   std::ios_base::openmode mode, uint32_t index)
 {
@@ -248,8 +226,6 @@ void binary_write(std::string filename, std::vector<bool> bits,
    uint32_t size = bits.size();
    std::ostringstream name;
    name << filename;
-
-   std::cout << "Writing to file" << std::endl;
 
    bitmap.open(name.str().c_str(), mode);
 
@@ -274,10 +250,43 @@ void binary_write(std::string filename, std::vector<bool> bits,
    }
 
    bitmap.close();
-
-   std::cout << "Writing to file done" << std::endl;
-
    return;
+}
+/**
+ * \brief Writes value to configuration file.
+ * \param [in] configname Name of the configuration file.
+ * \param [in] keys       Access path in configuration file structure.
+ * \param [in] value      Value to be inserted.
+ * \return If the operation is successful, returns true.
+ */
+bool config_write (std::string configname, std::vector<std::string> keys,
+                   std::string value)
+{
+   if (keys.size() == 0) {
+      return true;
+   }
+
+   // Load file in YAML
+   YAML::Node config_yaml = YAML::LoadFile(configname);
+   // Create vector of nodes for hierarchy
+   std::vector<YAML::Node> nodes(keys.size());
+   nodes[0] = config_yaml[keys[0]];
+
+   // Save hierarchy in nodes
+   for (unsigned k = 1; k < keys.size(); k++) {
+      nodes[k] = nodes[k-1][keys[k]];
+   }
+   // Assign value to the final node
+   nodes[keys.size()-1] = value;
+
+   // Save changes to file
+   std::ofstream config_out(configname);
+   if (!config_out.is_open()) {
+      return false;
+   }
+   config_out << config_yaml;
+   config_out.close();
+   return true;
 }
 
 /** Main function */
@@ -310,7 +319,7 @@ int main(int argc, char **argv)
    int ip_version = 4; // by default, primarily to be deduced from input IPs
    IPaddr_cpp range[2];
    bool rflag = false;
-   std::string filename = "bitmap";
+   std::string filename = "bitmap", configname = "config.yaml";
 
    /** Parse Arguments */
    char opt;
@@ -319,25 +328,17 @@ int main(int argc, char **argv)
 
    while ((opt = TRAP_GETOPT(argc, argv, module_getopt_string, long_options)) != -1) {
       switch (opt) {
-         case 't':
-            interval = atoi(optarg);
-            if (interval < 0) {
-               fprintf(stderr, "Error: Time interval - invalid value %d.\n", interval);
-               return 1;
-            }
+          case 'c':
+            configname.assign(optarg);
             break;
-         case 'w':
-            window = atoi(optarg);
-            if ((window < 0) || (window > MAX_WINDOW)) {
-               fprintf(stderr, "Error: Time window - invalid value %d.\n", window);
-               return 1;
-            }
+          case 'f':
+            filename.assign(optarg);
+            break;
+          case 'g':
+            granularity = atoi(optarg);
             break;
          case 'p':
             print_progress = true;
-            break;
-         case 'g':
-            granularity = atoi(optarg);
             break;
          case 'r':
             tmp_range.assign(optarg);
@@ -352,12 +353,21 @@ int main(int argc, char **argv)
             range[FIRST_ADDR].fromString(tmp_range.substr(0, index));
             tmp_range.erase(0, index + delim.length());
             range[LAST_ADDR].fromString(tmp_range);
-            //std:: cout << range[0].toString() << " " << range[1].toString() << std::endl;
-
             rflag = true;
             break;
-         case 'f':
-            filename.assign(optarg);
+         case 't':
+            interval = atoi(optarg);
+            if (interval < 0) {
+               fprintf(stderr, "Error: Time interval - invalid value %d.\n", interval);
+               return 1;
+            }
+            break;
+         case 'w':
+            window = atoi(optarg);
+            if ((window < 0) || (window > MAX_WINDOW)) {
+               fprintf(stderr, "Error: Time window - invalid value %d.\n", window);
+               return 1;
+            }
             break;
          default:
             fprintf(stderr, "Error: Unknown parameter -%c.\n", opt);
@@ -372,7 +382,7 @@ int main(int argc, char **argv)
 
    // If no range entered, used the entire range of IPv4 at /8 by default
    if (!rflag) {
-      range[FIRST_ADDR].fromString("0.0.0.0");
+      range[FIRST_ADDR].fromString("1.0.0.0");
       range[LAST_ADDR].fromString("255.0.0.0");
    } else {
       // Deduce IP version
@@ -400,26 +410,24 @@ int main(int argc, char **argv)
               ip_version, ((ip_version == 4) ? IPV4_BITS : IPV6_BITS));
       return 1;
    }
-   // Get time
-   std::time_t start_time = std::time(NULL);
-   struct tm* time_struct = localtime(&start_time);
-   char str_time[20];
+
+   // Time variables
+   std::time_t time_raw = std::time(NULL);
+   struct tm* time_struct = localtime(&time_raw);
+   char time_str[TIME_LEN];
 
 
    /** Create/open YAML configuration file  and bitmaps */
-   FILE *fp = fopen("config.yaml", "a+");
-   if (!fp) {
+
+   std::ifstream config_in(configname);
+   if (!config_in.is_open()) {
       fprintf(stderr, "Error: File could not be opened/created.\n");
       return 1;
    }
-   fclose(fp);
+   config_in.close();
 
    // Load file to YAML parser
-   YAML::Node config_file = YAML::LoadFile("config.yaml");
-
-   // Set bitmap options for server
-   //config_file[filename]["addresses"]["version"] = (ip_version == 4) ? "IPv4" : "IPv6";
-   config_file[filename]["addresses"]["granularity"] = granularity;
+   YAML::Node config_file = YAML::LoadFile(configname);
 
    // Remove first and last if they exist (when rewriting, ! <!> appeared)
    if (config_file[filename]["addresses"]["first"]) {
@@ -431,17 +439,24 @@ int main(int argc, char **argv)
    if (config_file[filename]["time"]["end"]) {
       config_file[filename]["time"].remove("end");
    }
+
+   // Set bitmap options for server
+   config_file[filename]["addresses"]["granularity"] = granularity;
+
    config_file[filename]["addresses"]["first"] = range[FIRST_ADDR].toString();
    config_file[filename]["addresses"]["last"] = range[LAST_ADDR].toString();
 
    config_file[filename]["time"]["granularity"] = interval;
-   std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
-   config_file[filename]["time"]["start"] = str_time;
-   config_file[filename]["time"]["intervals"] = window;
+   config_file[filename]["time"]["window"] = window;
+   config_file[filename]["time"]["intervals"] = 0;
 
-    std::ofstream fout("config.yaml");
-    fout << config_file;
-    fout.close();
+   std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
+   config_file[filename]["module"]["start"] = time_str;
+
+   // Save changes to config file
+   std::ofstream config_out(configname);
+   config_out << config_file;
+   config_out.close();
 
    // Create bitmap files
    std::fstream bitmap;
@@ -475,16 +490,16 @@ int main(int argc, char **argv)
 
    std::cout << vector_size << std::endl;
 
+   // Create bit vectors and basis for open modes.
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
    bool rewrite = false;
    std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
                                   std::ios_base::in | std::ios_base::app;
 
-   // Start the alarm
-   signal(SIGALRM, IPactivity_signal_handler);
-   alarm(interval);
 
-   int intervals = 0; // it is a number mod time window
+   int intervals = 0; // it is a number of intervals
+   bool first = true; // for setting start time in configuration file
+   time_t time_first;
 
    /** Main loop */
    while (!stop) {
@@ -497,6 +512,42 @@ int main(int argc, char **argv)
       // Handle possible errors
       TRAP_DEFAULT_RECV_ERROR_HANDLING(ret, continue, break);
 
+      // Get TIME_FIRST of the first record for the configuration file
+      if (first) {
+         time_first = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
+         time_struct = localtime(&time_first);
+         std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
+
+         // Load time to config file
+         config_write(configname, std::vector<std::string>({filename,
+                                  "time", "first"}), time_str);
+         first = false;
+      } else {
+         // Check if the record is still in the interval
+         time_raw = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
+
+         // If not, save vectors
+         if (time_first + interval < time_raw) {
+            for (int i = 0; i < 3; i++) {
+               binary_write(filename + suffix[i], bits[i], mode, intervals % window);
+               // Clear vector values
+               bits[i].assign(bits[i].size(), 0);
+            }
+   
+            // Store number of intervals to config file
+            config_write(configname, std::vector<std::string>({filename,
+                         "time", "intervals"}), std::to_string(intervals));
+   
+            // When the buffer is full, turn off appending
+            if (!rewrite && ((intervals + 1) == window)) {
+               rewrite = true;
+               mode = mode & (~(std::ios_base::app));
+            }
+
+            intervals++;
+         }
+      }
+
       // Check SRC and DST IP
       for (int i = 0; i < 2; i++) {
          if (i == SRC) {
@@ -507,7 +558,6 @@ int main(int argc, char **argv)
 
          // Check IP version
          if (ip.get_version() == ip_version) {
-            //std::string origin = ip.toString();
             convert_to_granularity(&ip, granularity);
 
             // Check if IP is in range
@@ -525,50 +575,23 @@ int main(int argc, char **argv)
             }
          }
       }
-
-      // Each interval, store data to bitmaps
-      if (save_vectors) {
-         for (int i = 0; i < 3; i++) {
-            binary_write(filename + suffix[i], bits[i], mode, intervals);
-            bits[i].assign(bits[i].size(), 0);
-         }
-         std::cout << "Stored to " << intervals << std::endl;
-         // When the buffer is full, turn off appending
-         /** Find out if offset without append would do */
-         if (!rewrite) {
-            if ((intervals + 1) == window) {
-               rewrite = true;
-               mode = mode & (~(std::ios_base::app));
-            }
-         }
-         save_vectors = false;
-         intervals = (intervals + 1) % window;
-         alarm(interval);
-      }
-
    }
 
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
-      binary_write(filename + suffix[i], bits[i], mode, intervals);
-      std::cout << "Last stored to " << intervals << std::endl;
+      binary_write(filename + suffix[i], bits[i], mode, intervals % window);
    }
 
    // Store end time
+
    // Get time
-   std::time_t end_time = std::time(NULL);
-   struct tm* end_time_struct = localtime(&end_time);
-   char str_end_time[20];
-   std::strftime(str_end_time, sizeof(str_end_time), "%d-%m-%Y %H:%M:%S", end_time_struct);
+   time_raw = std::time(NULL);
+   time_struct = localtime(&time_raw);
+   std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
 
-   // Load time to config file
-   config_file = YAML::LoadFile("config.yaml");
-   config_file[filename]["time"]["end"] = str_end_time;
-
-   // Save changes
-   std::ofstream fout2("config.yaml");
-   fout2 << config_file;
-   fout2.close();
+   // Load end time to config file
+   config_write(configname, std::vector<std::string>({filename,
+                            "module", "end"}), time_str);
 
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
