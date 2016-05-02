@@ -71,7 +71,8 @@
 
 UR_FIELDS (
    ipaddr DST_IP,
-   ipaddr SRC_IP
+   ipaddr SRC_IP,
+   time TIME_FIRST
 )
 
 
@@ -292,7 +293,7 @@ int main(int argc, char **argv)
    TRAP_REGISTER_DEFAULT_SIGNAL_HANDLER();
 
    // Create template
-   ur_template_t *tmplt = ur_create_input_template(0, "DST_IP,SRC_IP", NULL);
+   ur_template_t *tmplt = ur_create_input_template(0, "DST_IP,SRC_IP,TIME_FIRST", NULL);
 
    if (tmplt == NULL) {
       fprintf(stderr, "Error: Template could not be created x.x .\n");
@@ -435,7 +436,7 @@ int main(int argc, char **argv)
 
    config_file[filename]["time"]["granularity"] = interval;
    std::strftime(str_time, sizeof(str_time), "%d-%m-%Y %H:%M:%S", time_struct);
-   config_file[filename]["time"]["beginning"] = str_time;
+   config_file[filename]["time"]["start"] = str_time;
    config_file[filename]["time"]["intervals"] = window;
 
     std::ofstream fout("config.yaml");
@@ -561,7 +562,7 @@ int main(int argc, char **argv)
    std::strftime(str_end_time, sizeof(str_end_time), "%d-%m-%Y %H:%M:%S", end_time_struct);
 
    // Load time to config file
-   YAML::Node config_file = YAML::LoadFile("config.yaml");
+   config_file = YAML::LoadFile("config.yaml");
    config_file[filename]["time"]["end"] = str_end_time;
 
    // Save changes
