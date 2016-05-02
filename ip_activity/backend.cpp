@@ -289,6 +289,18 @@ bool config_write (std::string configname, std::vector<std::string> keys,
    return true;
 }
 
+/**
+ * Formats raw time as string - %d-%m-%Y %H:%M:%S
+ * @param [in] raw_time Time as raw seconds.
+ * @return Time as a formatted string.
+ */
+std::string get_formatted_time(time_t raw_time) {
+   struct tm* time_struct = localtime(&raw_time);
+   char time_str[TIME_LEN];
+   std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
+   return time_str;
+}
+
 /** Main function */
 int main(int argc, char **argv)
 {
@@ -411,12 +423,6 @@ int main(int argc, char **argv)
       return 1;
    }
 
-   // Time variables
-   std::time_t time_raw = std::time(NULL);
-   struct tm* time_struct = localtime(&time_raw);
-   char time_str[TIME_LEN];
-
-
    /** Create/open YAML configuration file  and bitmaps */
 
    std::ifstream config_in(configname);
@@ -436,8 +442,8 @@ int main(int argc, char **argv)
    if (config_file[filename]["addresses"]["last"]) {
       config_file[filename]["addresses"].remove("last");
    }
-   if (config_file[filename]["time"]["end"]) {
-      config_file[filename]["time"].remove("end");
+   if (config_file[filename]["module"]["end"]) {
+      config_file[filename]["module"].remove("end");
    }
 
    // Set bitmap options for server
@@ -449,9 +455,7 @@ int main(int argc, char **argv)
    config_file[filename]["time"]["granularity"] = interval;
    config_file[filename]["time"]["window"] = window;
    config_file[filename]["time"]["intervals"] = 0;
-
-   std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
-   config_file[filename]["module"]["start"] = time_str;
+   config_file[filename]["module"]["start"] = get_formatted_time(std::time(NULL));
 
    // Save changes to config file
    std::ofstream config_out(configname);
@@ -499,7 +503,7 @@ int main(int argc, char **argv)
 
    int intervals = 0; // it is a number of intervals
    bool first = true; // for setting start time in configuration file
-   time_t time_first;
+   time_t time_first, time_curr;
 
    /** Main loop */
    while (!stop) {
@@ -515,19 +519,17 @@ int main(int argc, char **argv)
       // Get TIME_FIRST of the first record for the configuration file
       if (first) {
          time_first = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
-         time_struct = localtime(&time_first);
-         std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
 
          // Load time to config file
          config_write(configname, std::vector<std::string>({filename,
-                                  "time", "first"}), time_str);
+                                  "time", "first"}), get_formatted_time(time_first));
          first = false;
       } else {
          // Check if the record is still in the interval
-         time_raw = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
+         time_curr = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
 
          // If not, save vectors
-         if (time_first + interval < time_raw) {
+         if (time_first + interval < time_curr) {
             for (int i = 0; i < 3; i++) {
                binary_write(filename + suffix[i], bits[i], mode, intervals % window);
                // Clear vector values
@@ -582,16 +584,9 @@ int main(int argc, char **argv)
       binary_write(filename + suffix[i], bits[i], mode, intervals % window);
    }
 
-   // Store end time
-
-   // Get time
-   time_raw = std::time(NULL);
-   time_struct = localtime(&time_raw);
-   std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
-
    // Load end time and intervals to config file
    config_write(configname, std::vector<std::string>({filename,
-                            "module", "end"}), time_str);
+                            "module", "end"}), get_formatted_time(std::time(NULL)));
    config_write(configname, std::vector<std::string>({filename,
                             "time", "intervals"}), std::to_string(intervals));
 
