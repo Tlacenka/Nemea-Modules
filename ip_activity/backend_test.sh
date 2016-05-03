@@ -20,15 +20,33 @@ ERR_FILE=tmp.err
 OUT_FILE=tmp.out
 
 # Tests
-TEST1=("Omitting -i parameter" "$DIR/ip_activity -w whatever" 1)
-TEST2=("Using wrong parameters" "$DIR/ip_activity -i t:12345 -z whatever" 1)
-TEST3=("Testing parameter -w < 0" "$DIR/ip_activity -i t:12345 -w -1" 1)
-TEST4=("Testing parameter -w > 1000" "$DIR/ip_activity -i t:12345 -w 5000" 1)
-TEST5=("Testing parameter -t < 0" "$DIR/ip_activity -i t:12345 -t -12" 1)
-TEST6=("Testing parameter -t > 1000" "$DIR/ip_activity -i t:12345 -t 120000" 1)
-
-TESTS=("${TEST1[@]}" "${TEST2[@]}" "${TEST3[@]}" "${TEST4[@]}" "${TEST5[@]}" "${TEST6[@]}")
 ELEMENTS=3
+TESTS=()
+
+# Trap tests
+TEST01=("Omitting -i parameter" "$DIR/ip_activity -w whatever" 1)
+TEST02=("Testing wrong IFC_SPEC" "$DIR/ip_activity -i tt:12345" 1)
+TEST03=("Using wrong parameters" "$DIR/ip_activity -i t:12345 -z whatever" 1)
+
+# Parameters tests
+TEST04=("Testing parameter -t < 0" "$DIR/ip_activity -i t:12345 -t -12" 1)
+TEST05=("Testing parameter -t > 1000" "$DIR/ip_activity -i t:12345 -t 120000" 1)
+TEST06=("Testing parameter -w < 0" "$DIR/ip_activity -i t:12345 -w -1" 1)
+TEST07=("Testing parameter -w > 1000" "$DIR/ip_activity -i t:12345 -w 5000" 1)
+TEST08=("Testing parameter -c with non-existing path" "$DIR/ip_activity -i t:12345 -c /whatever/smthelse.yaml" 1)
+TEST09=("Testing parameter -g < 0" "$DIR/ip_activity -i t:12345 -g -42" 1)
+TEST10=("Testing parameter -g > 32 with IPv4" "$DIR/ip_activity -i t:12345 -g 56" 1)
+TEST11=("Testing parameter -g > 128 with IPv6" "$DIR/ip_activity -i t:12345 -r ff::,ffee:: -g 130" 1)
+TEST12=("Testing parameter -r with random string" "$DIR/ip_activity -i t:12345 -r hello,goodbye" 1)
+TEST13=("Testing parameter -r with one IPv4" "$DIR/ip_activity -i t:12345 -r 123.0.4.9" 1)
+TEST14=("Testing parameter -r with one IPv6" "$DIR/ip_activity -i t:12345 -r faff:dfd2:2320::" 1)
+TEST15=("Testing parameter -r with one IP + comma" "$DIR/ip_activity -i t:12345 -r ,123.0.4.9" 1)
+TEST16=("Testing parameter -r with invalid IPv4" "$DIR/ip_activity -i t:12345 -r g.0.0.0,258.0.4.9" 1)
+TEST17=("Testing parameter -r with invalid IPv6" "$DIR/ip_activity -i t:12345 -r ffaa::,haha::" 1)
+
+TESTS=("${TEST01[@]}" "${TEST02[@]}" "${TEST03[@]}" "${TEST04[@]}" "${TEST05[@]}" "${TEST06[@]}")
+TESTS+=("${TEST07[@]}" "${TEST08[@]}" "${TEST09[@]}" "${TEST10[@]}" "${TEST11[@]}" "${TEST12[@]}")
+TESTS+=("${TEST13[@]}" "${TEST14[@]}" "${TEST15[@]}" "${TEST16[@]}" "${TEST17[@]}")
 
 TESTS_NR=`expr ${#TESTS[@]} / $ELEMENTS`
 
@@ -40,7 +58,7 @@ function run_test() {
    RETURN="$?"
 
    # Print output
-   printf "${bold}%-30s${normal}" "${1}:"
+   printf "${bold}%-50s${normal}" "${1}:"
    if [ "$RETURN" = "${3}" ]
    then
        printf "${green} PASS${normal}\n"
