@@ -51,6 +51,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <typeinfo>
 
@@ -318,7 +319,7 @@ int main(int argc, char **argv)
    ur_template_t *tmplt = ur_create_input_template(0, "DST_IP,SRC_IP,TIME_FIRST", NULL);
 
    if (tmplt == NULL) {
-      fprintf(stderr, "Error: Template could not be created x.x .\n");
+      fprintf(stderr, "Error: Template could not be created.\n");
       return -1;
    }
 
@@ -338,6 +339,7 @@ int main(int argc, char **argv)
    char opt;
    size_t index;
    std::string delim = ",", tmp_range;
+   const char hex_str[] = "0123456789abcdefABCDEF:.";
 
    while ((opt = TRAP_GETOPT(argc, argv, module_getopt_string, long_options)) != -1) {
       switch (opt) {
@@ -363,11 +365,20 @@ int main(int argc, char **argv)
             }
 
             // Convert all IPs to ip_addr_t
+            if (strspn(tmp_range.substr(0, index).c_str(), hex_str) != index) {
+               fprintf(stderr, "Error: IP range - bad format of the first IP.\n");
+               return 1;
+            }
             range[FIRST_ADDR].fromString(tmp_range.substr(0, index));
             tmp_range.erase(0, index + delim.length());
+            if (strspn(tmp_range.c_str(), hex_str) != tmp_range.length()) {
+               fprintf(stderr, "Error: IP range - bad format of the second IP.\n");
+               return 1;
+            }
             range[LAST_ADDR].fromString(tmp_range);
             rflag = true;
             break;
+
          case 't':
             interval = atoi(optarg);
             if ((interval < 0) || (interval > MAX_INTERVAL)) {
@@ -409,6 +420,7 @@ int main(int argc, char **argv)
       }
 
       if (range[FIRST_ADDR] >= range[LAST_ADDR]) {
+         std::cout << range[FIRST_ADDR].toString() << " " << range[LAST_ADDR].toString() << std::endl;
          fprintf(stderr, "Error: Range is smaller than one subnet /%d\n",
                granularity);
          return 1;
