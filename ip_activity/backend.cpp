@@ -529,7 +529,7 @@ int main(int argc, char **argv)
          time_curr = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
 
          // If not, save vectors
-         if (time_first + interval < time_curr) {
+         if ((time_first + interval * time_interval) < time_curr) {
             for (int i = 0; i < 3; i++) {
                binary_write(filename + suffix[i], bits[i], mode, intervals % window);
                // Clear vector values
