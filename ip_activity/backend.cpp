@@ -93,6 +93,7 @@ trap_module_info_t *module_info = NULL;
 #define SRC_DST 2
 
 #define MAX_WINDOW 1000
+#define MAX_INTERVAL 86400
 #define MAX_VECTOR_SIZE 1000
 
 #define TIME_LEN 20
@@ -369,7 +370,7 @@ int main(int argc, char **argv)
             break;
          case 't':
             interval = atoi(optarg);
-            if (interval < 0) {
+            if ((interval < 0) || (interval > MAX_INTERVAL)) {
                fprintf(stderr, "Error: Time interval - invalid value %d.\n", interval);
                return 1;
             }
@@ -529,7 +530,7 @@ int main(int argc, char **argv)
          time_curr = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
 
          // If not, save vectors
-         if ((time_first + interval * time_interval) < time_curr) {
+         if ((time_first + (intervals * interval)) < time_curr) {
             for (int i = 0; i < 3; i++) {
                binary_write(filename + suffix[i], bits[i], mode, intervals % window);
                // Clear vector values
