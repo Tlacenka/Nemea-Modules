@@ -88,8 +88,8 @@ g_byte_vector_size = 0
 #Time variables
 g_time_interval = 0
 g_time_window = 0
-g_time_start = None
-g_time_end = None
+g_time_first = None
+g_intervals = 0;
 
 
 #Bitmaps
@@ -172,6 +172,64 @@ def get_index_from_ip(first_ip, curr_ip, granularity):
    # Get index
    return int(shifted_2) - int(shifted_1)
 
+def validate_config(bitmap_name, config_path):
+   global g_mode, g_first_ip, g_last_ip, g_granularity, g_ip_size
+   global g_bit_vector_size, g_byte_vector_size, g_time_window, g_intervals
+   global g_time_interval, g_time_first
+
+   # Read configuration file
+   try:
+      with open(config_path, 'r') as fd:
+         config_file = yaml.load(fd.read())
+   except IOError:
+      print('File ' + config_path + ' could not be opened.', file=sys.stderr)
+      sys.exit(1)
+
+   # Check if node with filename exists:
+   if bitmap_name not in config_file:
+      print('Bitmap files not found.', file=sys.stderr)
+      sys.exit(1) 
+
+   # Check if node contains required keys
+   if (not(set(['time', 'addresses','module'])<= set(config_file[bitmap_name].keys())) or
+      not(set(['first', 'last', 'granularity']) <= set(config_file[bitmap_name]['addresses'].keys())) or
+      not(set(['granularity', 'intervals', 'first', 'window']) <= set(config_file[bitmap_name]['time'].keys())) or
+      not('start' in config_file[bitmap_name]['module'])):
+      print('Configuration file structure is invalid.', file=sys.stderr)
+      sys.exit(1)
+
+   if ('end' in config_file[bitmap_name]['module']):
+      g_mode = 'offline'
+   else:
+      g_mode = 'online'
+
+   # Get needed values
+
+   # Get IPs
+   if sys.version_info[0] == 2:
+      g_first_ip = ipaddress.ip_address(unicode(config_file[bitmap_name]['addresses']['first'],
+                                                  "utf-8"))
+      g_last_ip = ipaddress.ip_address(unicode(config_file[bitmap_name]['addresses']['last'],
+                                                 "utf-8"))
+
+   else:
+      g_first_ip = ipaddress.ip_address(config_file[bitmap_name]['addresses']['first'])
+
+      g_last_ip = ipaddress.ip_address(config_file[bitmap_name]['addresses']['last'])
+
+   g_granularity = int(config_file[bitmap_name]['addresses']['granularity'])
+   g_ip_size = g_first_ip.max_prefixlen
+
+   g_bit_vector_size  = get_index_from_ip(str(g_first_ip), str(g_last_ip), g_granularity)
+   g_byte_vector_size = int(math.ceil(g_bit_vector_size / 8))
+
+   # Get time window and interval
+   g_time_window = int(config_file[bitmap_name]['time']['window'])
+   g_intervals = int(config_file[bitmap_name]['time']['intervals'])
+   g_time_interval = int(config_file[bitmap_name]['time']['granularity'])
+   g_time_first = datetime.datetime.strptime(config_file[bitmap_name]['time']['first'], '%d-%m-%Y %H:%M:%S')
+
+
 # SIGTERM
 def sigterm_handler(signal, frame):
     sys.exit(0)
@@ -186,7 +244,7 @@ def create_request_handler(args):
 
       def binary_read(self, filename):
          ''' Returns 2D bitarray of updated, transposed bitmap '''
-         global g_byte_vector_size, g_bit_vector_size, g_time_start
+         global g_byte_vector_size, g_bit_vector_size, g_time_first
          # xxd [[-b] bitmap_name
 
          # Check if file exists and its size is bigger than 0
@@ -237,7 +295,7 @@ def create_request_handler(args):
                transp_bitmap[b].append(tmp_bitmap[r][b])
 
          # Shift by number of intervals from the beginning if online mode
-         index = (datetime.datetime.now() - g_time_start).total_seconds()
+         index = (datetime.datetime.now() - g_time_first).total_seconds()
          print("seconds from the start:", index)
          #for r in range(rows):
          #   transp_bitmap[r] = 
@@ -320,19 +378,24 @@ def create_request_handler(args):
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
          global g_granularity, g_first_ip, g_last_ip, g_time_interval
-         global g_time_window, g_bitmap, g_selected_bitmap, g_mode
+         global g_time_window, g_bitmap, g_selected_bitmap, g_mode, g_intervals
+         global g_time_first
 
          # Check if mode is online
          if g_mode == 'online':
             # Check if config file has "end"
             try:
-               with open(self.arguments['dir'] + '/' + self.arguments['config'], 'r') as fd:
+               with open("config.yaml", 'r+') as fd:
                   config_file = yaml.load(fd.read())
+                  if config_file is None:
+                     print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' failed.', file=sys.stderr)
+                     sys.exit(1)
+                  elif ('end' in config_file[self.arguments['filename']]['module']):
+                     g_mode = 'offline'
             except IOError:
-               print('File ' + self.arguemnts['dir'] + '/' + self.arguments['config'] + ' could not be opened.', file=sys.stderr)
+               print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' could not be opened.', file=sys.stderr)
                sys.exit(1)
-            if ('end' in config_file[args['filename']]['time']):
-               g_mode = 'offline'
+            
 
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
 
@@ -355,7 +418,7 @@ def create_request_handler(args):
                   # Insert characteristics
                   html_file.find('td', 'subnet_size').append("/" + str(g_granularity))
                   html_file.find('td', 'range').append(str(g_first_ip) + " - " + str(g_last_ip))
-                  html_file.find('td', 'int_range').append(str(0 if g_bitmap == None else len(g_bitmap[0])) + " intervals")
+                  html_file.find('td', 'int_range').append(str(g_intervals) + " intervals")
                   html_file.find('td', 'time_interval').append(str(g_time_interval) + " seconds")
                   html_file.find('td', 'time_window').append(str(g_time_window) + " intervals")
                   html_file.find('td', 'mode').append(g_mode)
@@ -480,6 +543,7 @@ def create_request_handler(args):
                         self.send_header('Interval_range',
                                         str(len(g_bitmap[0]) if ((g_bitmap is not None) and (len(g_bitmap) > 0)) else 0))
                         self.send_header('Mode', g_mode)
+                        print (g_mode)
    
                      # If image is sent via AJAX, encode to base64
                      if ((content_type == 'image/png') and (query is not None) and
@@ -503,7 +567,7 @@ def main():
    ''' Main function for the lifecycle of the server. '''
    global g_first_ip, g_last_ip, g_ip_size, g_granularity, g_bit_vector_size
    global g_byte_vector_size, g_time_interval, g_time_window, g_bitmap
-   global g_time_start, g_time_end, g_mode
+   global g_time_first, g_mode, g_intervals
 
    # Parse arguments
    parser = argparse.ArgumentParser()
@@ -532,57 +596,8 @@ def main():
       print('Port not within allowed range.', file=sys.stderr)
       sys.exit(1)
 
-   # Read configuration file
-   try:
-      with open(args['dir'] + '/' + args['config'], 'r') as fd:
-         config_file = yaml.load(fd.read())
-   except IOError:
-      print('File ' + args['dir'] + '/' + args['config'] + ' could not be opened.', file=sys.stderr)
-      sys.exit(1)
-
-   # Check if node with filename exists:
-   if args['filename'] not in config_file:
-      print('Bitmap files not found.', file=sys.stderr)
-      sys.exit(1) 
-
-   # Check if node contains required keys
-   if (not(set(['time', 'addresses'])<= set(config_file[args['filename']].keys())) or
-      not(set(['first', 'last', 'granularity']) <= set(config_file[args['filename']]['addresses'].keys())) or
-      not(set(['granularity', 'intervals', 'start']) <= set(config_file[args['filename']]['time'].keys()))):
-      print('Configuration file structure is invalid.', file=sys.stderr)
-      sys.exit(1)
-
-   if ('end' in config_file[args['filename']]['time']):
-      g_mode = 'offline'
-   else:
-      g_mode = 'online'
-
-   # Get needed values
-
-   # Get IPs
-   if sys.version_info[0] == 2:
-      g_first_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['first'],
-                                                  "utf-8"))
-      g_last_ip = ipaddress.ip_address(unicode(config_file[args['filename']]['addresses']['last'],
-                                                 "utf-8"))
-
-   else:
-      g_first_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['first'])
-
-      g_last_ip = ipaddress.ip_address(config_file[args['filename']]['addresses']['last'])
-
-   g_granularity = int(config_file[args['filename']]['addresses']['granularity'])
-   g_ip_size = g_first_ip.max_prefixlen
-
-   g_bit_vector_size  = get_index_from_ip(str(g_first_ip), str(g_last_ip), g_granularity)
-   g_byte_vector_size = int(math.ceil(g_bit_vector_size / 8))
-
-   # Get time window and interval
-   g_time_window = int(config_file[args['filename']]['time']['intervals'])
-   g_time_interval = int(config_file[args['filename']]['time']['granularity'])
-   g_time_start = datetime.datetime.strptime(config_file[args['filename']]['time']['start'], '%d-%m-%Y %H:%M:%S')
-   if g_mode == 'offline':
-      g_time_end = datetime.datetime.strptime(config_file[args['filename']]['time']['end'], '%d-%m-%Y %H:%M:%S')
+   # Validate configuration file, create values
+   validate_config(args['filename'], args['dir'] + '/' + args['config']);
 
    # Create the server
    ip_activity_RequestHandler = create_request_handler(args)
