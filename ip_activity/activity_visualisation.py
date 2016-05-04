@@ -58,15 +58,13 @@ import sys
 
 # Class for handling bitmap, visualisation
 class Visualisation_Handler:
-   def __init___(self):
+   def __init__(self):
       ''' Constructor '''
-
-      self.sasa = 69
 
       # Paths and filenames
       self.config_name = ''
       self.directory = ''
-      self.bitmap_filename = ''
+      self.bitmap_filename = 'bitmap'
 
       # Bitmap variables
       self.original_bitmap = None
@@ -367,6 +365,6 @@ class Visualisation_Handler:
 
 
 if __name__ == '__main__':
-   ''' Create an instance'''
+   ''' Create an instance, try out printing an attribute value '''
    handler = Visualisation_Handler()
-   print(handler.sasa)
+   print(handler.bitmap_filename)
