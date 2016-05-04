@@ -458,6 +458,9 @@ int main(int argc, char **argv)
    if (config_file[filename]["module"]["end"]) {
       config_file[filename]["module"].remove("end");
    }
+   if (config_file[filename]["time"]["intervals"]) {
+      config_file[filename]["time"].remove("intervals");
+   }
 
    // Set bitmap options for server
    config_file[filename]["addresses"]["granularity"] = granularity;
@@ -467,7 +470,6 @@ int main(int argc, char **argv)
 
    config_file[filename]["time"]["granularity"] = interval;
    config_file[filename]["time"]["window"] = window;
-   config_file[filename]["time"]["intervals"] = 0;
    config_file[filename]["module"]["start"] = get_formatted_time(std::time(NULL));
 
    // Save changes to config file
@@ -548,10 +550,6 @@ int main(int argc, char **argv)
                // Clear vector values
                bits[i].assign(bits[i].size(), 0);
             }
-   
-            // Store number of intervals to config file
-            config_write(configname, std::vector<std::string>({filename,
-                         "time", "intervals"}), std::to_string(intervals));
    
             // When the buffer is full, turn off appending
             if (!rewrite && ((intervals + 1) == window)) {
