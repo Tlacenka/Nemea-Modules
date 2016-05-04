@@ -42,9 +42,12 @@ $(document).ready(function() {
    if ($('.bitmap_stats td.range').html().split(" ")[0].indexOf(":") != -1) {
       ip_version = 6;
    }
-   var ip_max = ((ip_version == 4) ? 32 : 128);
-   var interval_max = 86400; // a day
+
    var int_range_max = $('.bitmap_stats td.int_range').html().split(" ")[0];
+
+   // Units of selected area
+   var time_unit = 1;
+   var ip_unit = 1;
 
    // Mouse position for drag event
    var mouse_X = -1;
@@ -52,11 +55,8 @@ $(document).ready(function() {
    var mouse_down = false;
 
    // Initialize form values
-   $('.bitmap_options input.granularity').val(parseInt(
-                                       $('.bitmap_stats td.subnet_size').html().slice("1")));
    $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
-   $('.bitmap_options input.time_interval').val(parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0]));
    $('.bitmap_options input.first_int').val(0);
    $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.int_range').html().split(" ")[0]));
 
@@ -155,22 +155,12 @@ $(document).ready(function() {
 
       // Get area parameters
       var type = get_bitmap_type(),
-          subnet_size = $('#bitmap_form input.granularity').val(),
           first_ip = $('#bitmap_form input.first_ip').val(),
           last_ip = $('#bitmap_form input.last_ip').val(),
           first_int = $('#bitmap_form input.first_int').val(), 
-          last_int = $('#bitmap_form input.last_int').val(),
-          time_interval = $('#bitmap_form input.time_interval').val();
+          last_int = $('#bitmap_form input.last_int').val();
 
       // Validate parameters
-      if (parseInt(subnet_size) > ip_max) {
-         alert('Subnet size must be between 0 and ' + ip_max);
-         return;
-      }
-      if (parseInt(time_interval) > interval_max) {
-         alert('Time interval is too big (maximum is one day - ' + interval_max + ' seconds)');
-         return;
-      }
       if ((parseInt(first_int) < 0) || (parseInt(last_int) > int_range_max) ||
           (parseInt(first_int) > parseInt(last_int))) {
          alert('Intervals must be between 0 and ' + int_range_max + '.');
@@ -195,22 +185,20 @@ $(document).ready(function() {
       // Send GET request
       var arguments = 'select_area=true' +
                       '&bitmap_type=' + type +
-                      '&subnet_size=' +  subnet_size +
                       '&first_ip=' +  first_ip +
                       '&last_ip=' +  last_ip +
                       '&first_int=' +  first_int +
-                      '&last_int=' + last_int +
-                      '&time_interval=' + time_interval;
+                      '&last_int=' + last_int;
 
       http_GET("", set_selected_area, arguments);
 
       // Update characteristics of selected area
       $('#selected').show();
       document.getElementById('selected_type').innerHTML = $('#bitmap_type li.chosen_type').html();
-      document.getElementById('selected_subnet_size').innerHTML = '/' + subnet_size;
       document.getElementById('selected_ip_range').innerHTML = first_ip + ' - ' + last_ip;
       document.getElementById('selected_int_range').innerHTML = first_int + ' - ' + last_int;
-      document.getElementById('selected_time_interval').innerHTML = time_interval + ' seconds';
+      document.getElementById('selected_time_unit').innerHTML = time_unit;
+      document.getElementById('selected_ip_unit').innerHTML = ip_unit;
 
       // Set current position
       var curr_index = $('.selected_stats #selected_ip_range').html().split(" ")[0];
@@ -240,7 +228,7 @@ $(document).ready(function() {
    
          // Set selected area image
          $('#selected_area').show();
-         $('#selected_area').html('<img class="hover_coords selected_area" src="data:image/png;base64,' + http_request.responseText + '" />');
+         $('#selected_area').html('<img class="hover_coords selected_area" alt="Activity Image" src="data:image/png;base64,' + http_request.responseText + '" />');
          $('#selected_area img').css({
             'border': '1px solid SlateGray',
             'display': 'block',
@@ -256,27 +244,16 @@ $(document).ready(function() {
    $('img.btn').click(function(){
       var value = parseInt($(this).siblings('input').val());
       var classname = $(this).siblings('input').attr('class');
-      if ($(this).closest('tr').hasClass('int_range')) {
-         if ($(this).hasClass('first_int')) {
-            value = parseInt($(this).siblings('input.first_int').val());
-            classname = 'first_int';
-         } else if ($(this).hasClass('last_int')) {
-            value = parseInt($(this).siblings('input.last_int').val());
-            classname = 'last_int'
-         }
-      }
-
       // Get limit based on type of input
-      var limit = 0;
+      var limit = int_range_max;
       
-      if (classname === 'granularity') {
-         limit = ip_max;
-      } else if (classname === 'time_interval') {
-         limit = interval_max;
-      } else if ((classname ==='first_int') || (classname ==='last_int')) {
-         limit = int_range_max;
+      if ($(this).hasClass('first_int')) {
+         value = parseInt($(this).siblings('input.first_int').val());
+         classname = 'first_int';
+      } else if ($(this).hasClass('last_int')) {
+         value = parseInt($(this).siblings('input.last_int').val());
+         classname = 'last_int'
       }
-     
 
       // Increment/decrement
       if (value > limit) {
@@ -301,7 +278,7 @@ $(document).ready(function() {
       if (http_request.getResponseHeader('Bitmap') === 'ok') {
          $('#bitmap_inner').show();
          $('#bitmap_inner img').remove();
-         $('#bitmap_inner').html('<img class="hover_coords origin" src="data:image/png;base64,' + http_request.responseText + '" />');
+         $('#bitmap_inner').html('<img class="hover_coords origin" alt="Activity Image" src="data:image/png;base64,' + http_request.responseText + '" />');
          $('#bitmap_inner img').css({
             'border': '1px solid SlateGray',
             'display': 'block',
@@ -314,8 +291,7 @@ $(document).ready(function() {
          // Change interval characteristics if range < time window
          if (parseInt($('#int_range').html().split(" ")[0]) <
             parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
-            int_range_max = http_request.getResponseHeader('Interval_range');
-            document.getElementById("int_range").innerHTML = int_range_max + " intervals";
+            document.getElementById("int_range").innerHTML = http_request.getResponseHeader('Interval_range') + " intervals";
          }
          // Change online -> offline only
          if (($('.bitmap_stats td.mode').html() == 'online') &&
@@ -346,7 +322,10 @@ $(document).ready(function() {
       var x = parseInt(event.pageX - $(this).position().left - 1);
       var y = parseInt(event.pageY - $(this).position().top - 51);
 
+      //console.log(x + " " + y);
+
       if ((x < 0) || (y < 0)) {
+         //console.log(x + " " + y);
          return;
       }
 
@@ -363,12 +342,10 @@ $(document).ready(function() {
       var granularity = 0;
       if (classname === 'origin') {
          first_ip = $('.bitmap_stats td.range').html().split(" ")[0];
-         granularity = $('.bitmap_stats td.subnet_size').html().slice('1');
       } else {
          first_ip= $('.selected_stats #selected_ip_range').html().split(" ")[0];
-         granularity = $('.selected_stats #selected_subnet_size').html().slice('1');
-         
       }
+      granularity = $('.bitmap_stats td.subnet_size').html().slice('1');
       
 
 
@@ -392,7 +369,7 @@ $(document).ready(function() {
       } else {
          // Move coordinates based on selected area
          document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
-                                        $('.selected_stats #selected_subnet_size').html();
+                                        $('.bitmap_stats td.subnet_size').html();
          if (x == parseInt($('.selected_stats #selected_int_range').html().split(' ')[2])) {
             x--;
          }

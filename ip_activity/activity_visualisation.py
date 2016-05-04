@@ -88,10 +88,12 @@ class Visualisation_Handler:
       self.selected_last_ip = None
       self.selected_bit_vector_size = 0
       
-      self.selected_ip_granularity = 0
-      self.selected_time_granularity = 0
       self.selected_first_int = 0
       self.selected_last_int = 0
+
+      # How many pixels per unit
+      self.selected_time_unit = 1
+      self.selected_ip_unit = 1
 
 
    def load_config(self, directory, bitmap_name, config_name):
@@ -337,8 +339,8 @@ class Visualisation_Handler:
    
 
       # Adjust IP range (deleting rows)
-      ip1_index = self.get_index_from_ip(str(self.first_ip), query['first_ip'][0], int(query['subnet_size'][0]))
-      ip2_index = self.get_index_from_ip(str(self.first_ip), query['last_ip'][0], int(query['subnet_size'][0]))
+      ip1_index = self.get_index_from_ip(str(self.first_ip), query['first_ip'][0], self.ip_granularity)
+      ip2_index = self.get_index_from_ip(str(self.first_ip), query['last_ip'][0], self.ip_granularity)
       
       # Save IP range length
       self.selected_bit_vector_size = ip2_index - ip1_index

@@ -52,7 +52,7 @@
          <hr>
          <h2> Original Bitmap </h2>
 
-         <!-- Options -->
+         <!-- Characteristics -->
          <div class="columns">
             <div class="bitmap_stats floatable">
                <h3> Characteristics </h3>
@@ -106,53 +106,36 @@
                </table>
             </div>
 
+             <!-- Form -->
             <div class="bitmap_options floatable">
                <h3> Select Bitmap Area </h3>
                <form id="bitmap_form">
                   <table class="bitmap_table">
-                     <tr class="granularity">
-                        <th>Subnet Size</th>
-                        <td>
-                           <div>
-                              <img class="btn form_incr" src="images/upArrow.png">
-                              <p>/</p>
-                              <input class="granularity" name="granularity" type="text" size="3">
-                              <img class=" btn form_decr" src="images/downArrow.png">
-                           </div>
-                        </td>
-                     </tr>
+
                      <tr class="ip_range">
                         <th rowspan="2">IP Range</th>
                         <td><input class="first_ip" name="first_ip" type="text"></td>
                      </tr>
+
                      <tr class="ip_range">
                         <td><input class="last_ip" name="last_ip" type="text"></td>
                      </tr>
+
                      <tr class="int_range">
                         <th>Interval Range</th>
                         <td>
                            <div>
-                              <img class="btn form_incr first_int" src="images/upArrow.png">
+                              <img class="btn form_incr first_int" src="images/upArrow.png" alt="Up Arrow" />
                               <input class="first_int" name="first_int" type="text" size="4">
-                              <img class=" btn form_decr first_int" src="images/downArrow.png">
+                              <img class=" btn form_decr first_int" src="images/downArrow.png" alt="Down Arrow" />
                               <p> - </p>
-                              <img class="btn form_incr last_int" src="images/upArrow.png">
+                              <img class="btn form_incr last_int" src="images/upArrow.png" alt="Up Arrow" />
                               <input class="last_int" name="last_int" type="text" size="4">
-                              <img class=" btn form_decr last_int" src="images/downArrow.png">
+                              <img class=" btn form_decr last_int" src="images/downArrow.png" alt="Down Arrow" />
                            </div>
                         </td>
                      </tr>
-                     <tr class="time_interval">
-                        <th>Time Interval</th>
-                        <td>
-                           <div>
-                              <img class="btn form_incr" src="images/upArrow.png">
-                              <input class="time_interval" name="time_interval" type="text" size="10">
-                              <p> seconds</p>
-                              <img class=" btn form_decr" src="images/downArrow.png">
-                           </div>
-                        </td>
-                     </tr>
+
                   </table><br>
                   <input class="submit" type="submit" value="Submit">
                </form>
@@ -179,21 +162,25 @@
                   <th> Bitmap Type </th>
                   <td id="selected_type"></td>
                </tr>
-               <tr class="subnet_size">
-                  <th> Subnet Size </th>
-                  <td id="selected_subnet_size"></td>
-               </tr>
+               
                <tr class="ip_range">
                   <th> IP Range </th>
                   <td id="selected_ip_range"></td>
                </tr>
+
                <tr class="int_range">
                   <th> Interval Range </th>
                   <td id="selected_int_range"></td>
                </tr>
-               <tr class="time_interval">
-                  <th> Time Interval </th>
-                  <td id="selected_time_interval"></td>
+
+               <tr class="ip_unit">
+                  <th> IP Unit </th>
+                  <td id="selected_ip_unit"></td>
+               </tr>
+
+               <tr class="time_unit">
+                  <th> Time Unit </th>
+                  <td id="selected_time_unit"></td>
             </table>
          </div>
 

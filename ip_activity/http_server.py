@@ -131,7 +131,11 @@ def create_handler(args, handler):
                   # Insert characteristics
                   html_file.find('td', 'subnet_size').append("/" + str(self.visualisation_handler.ip_granularity))
                   html_file.find('td', 'range').append(str(self.visualisation_handler.first_ip) + " - " + str(self.visualisation_handler.last_ip))
-                  html_file.find('td', 'int_range').append(str(self.visualisation_handler.intervals) + " intervals")
+                  if (self.visualisation_handler.intervals > self.visualisation_handler.time_window):
+                     html_file.find('td', 'int_range').append(str(self.visualisation_handler.time_window) + " intervals")
+                  else:
+                     html_file.find('td', 'int_range').append(str(self.visualisation_handler.intervals) + " intervals")
+
                   html_file.find('td', 'time_interval').append(str(self.visualisation_handler.time_granularity) + " seconds")
                   html_file.find('td', 'time_window').append(str(self.visualisation_handler.time_window) + " intervals")
                   html_file.find('td', 'mode').append(self.visualisation_handler.mode)
@@ -209,9 +213,8 @@ def create_handler(args, handler):
    
                # If selected area is required
                if (('select_area' in query) and ('bitmap_type' in query) and
-                   ('subnet_size' in query) and ('first_ip' in query) and
-                   ('last_ip' in query) and ('first_int' in query) and
-                   ('last_int' in query) and ('time_interval' in query)):
+                   ('first_ip' in query) and ('last_ip' in query) and
+                   ('first_int' in query) and ('last_int' in query)):
    
                   # Edit bitmap
                   self.visualisation_handler.edit_bitmap(query)
