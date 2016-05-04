@@ -55,10 +55,9 @@ import ipaddress
 import logging
 import math
 import os
-from PIL import Image # Pillow needed for compatibility
 import signal
-import struct
 import time
+import activity_visualisation
 import yaml # pyyaml
 import sys
 
@@ -76,413 +75,130 @@ SRC = 0
 DST = 1
 SRC_DST = 2
 
-# Global variables
-# IP variables
-g_first_ip = None
-g_last_ip = None
-g_ip_size = 0
-g_granularity = 0
-g_bit_vector_size = 0
-g_byte_vector_size = 0
-
-#Time variables
-g_time_interval = 0
-g_time_window = 0
-g_time_first = None
-g_intervals = 0;
-
-
-#Bitmaps
-g_bitmap = None
-g_selected_bitmap = None
-
-# Selected area
-g_selected_first_ip = None
-g_selected_last_ip = None
-g_selected_bit_vector_size = 0
-
-g_selected_granularity = 0
-g_selected_first_int = 0
-g_selected_last_int = 0
-g_selected_time_interval = 0
-
-# Mode
-g_mode = ''
-
-def get_ip_from_index(first_ip, index, granularity):
-   ''' Calculates IP at index from first_ip considering granularity
-       Handles IPs as strings '''
-   global g_ip_size
-
-   # Shift IP, increment and shift back
-   # Expicitly state IPv6:
-   # > Python implicitly converts to IPv4 if the value fits in 32 bits
-   if sys.version_info[0] == 2:
-      if g_ip_size == 128:
-         ip = ipaddress.IPv6Address(unicode(first_ip, "utf-8"))
-      else:
-         ip = ipaddress.ip_address(unicode(first_ip, "utf-8"))
-   else:
-      if g_ip_size == 128:
-         ip = ipaddress.IPv6Address(first_ip)
-      else:
-         ip = ipaddress.ip_address(first_ip)
-
-   if g_ip_size == 128:
-      ip = ipaddress.IPv6Address((int(ip) >> (g_ip_size- granularity)))
-   else:
-      ip = ipaddress.ip_address((int(ip) >> (g_ip_size - granularity)))
-
-   ip += index
-   
-   if g_ip_size == 128:
-      ip = ipaddress.IPv6Address((int(ip) << (g_ip_size - granularity)))
-   else:
-      ip = ipaddress.ip_address((int(ip) << (g_ip_size - granularity)))
-
-
-   return str(ip)
-
-def get_index_from_ip(first_ip, curr_ip, granularity):
-   ''' Calculates offset from first ip to current one (passed as strings) '''
-   global g_ip_size
-
-   # Get IPs
-   if sys.version_info[0] == 2:
-      if g_ip_size == 128:
-         ip1 = ipaddress.IPv6Address(unicode(first_ip, "utf-8"))
-         ip2 = ipaddress.IPv6Address(unicode(curr_ip, "utf-8"))
-      else:
-         ip1 = ipaddress.ip_address(unicode(first_ip, "utf-8"))
-         ip2 = ipaddress.ip_address(unicode(curr_ip, "utf-8"))
-   else:
-      if g_ip_size == 128: 
-         ip1 = ipaddress.IPv6Address(first_ip)
-         ip2 = ipaddress.IPv6Address(curr_ip)
-      else:
-         ip1 = ipaddress.ip_address(first_ip)
-         ip2 = ipaddress.ip_address(curr_ip)
-
-   # Adjust IPs to granularity, shift
-   shift = ip1.max_prefixlen - granularity
-
-   shifted_1 = ipaddress.ip_address(int(ip1) >> shift)
-   shifted_2 = ipaddress.ip_address(int(ip2) >> shift)
-
-   # Get index
-   return int(shifted_2) - int(shifted_1)
-
-def validate_config(bitmap_name, config_path):
-   global g_mode, g_first_ip, g_last_ip, g_granularity, g_ip_size
-   global g_bit_vector_size, g_byte_vector_size, g_time_window, g_intervals
-   global g_time_interval, g_time_first
-
-   # Read configuration file
-   try:
-      with open(config_path, 'r') as fd:
-         config_file = yaml.load(fd.read())
-   except IOError:
-      print('File ' + config_path + ' could not be opened.', file=sys.stderr)
-      sys.exit(1)
-
-   # Check if node with filename exists:
-   if bitmap_name not in config_file:
-      print('Bitmap files not found.', file=sys.stderr)
-      sys.exit(1) 
-
-   # Check if node contains required keys
-   if (not(set(['time', 'addresses','module'])<= set(config_file[bitmap_name].keys())) or
-      not(set(['first', 'last', 'granularity']) <= set(config_file[bitmap_name]['addresses'].keys())) or
-      not(set(['granularity', 'intervals', 'first', 'window']) <= set(config_file[bitmap_name]['time'].keys())) or
-      not('start' in config_file[bitmap_name]['module'])):
-      print('Configuration file structure is invalid.', file=sys.stderr)
-      sys.exit(1)
-
-   if ('end' in config_file[bitmap_name]['module']):
-      g_mode = 'offline'
-   else:
-      g_mode = 'online'
-
-   # Get needed values
-
-   # Get IPs
-   if sys.version_info[0] == 2:
-      g_first_ip = ipaddress.ip_address(unicode(config_file[bitmap_name]['addresses']['first'],
-                                                  "utf-8"))
-      g_last_ip = ipaddress.ip_address(unicode(config_file[bitmap_name]['addresses']['last'],
-                                                 "utf-8"))
-
-   else:
-      g_first_ip = ipaddress.ip_address(config_file[bitmap_name]['addresses']['first'])
-
-      g_last_ip = ipaddress.ip_address(config_file[bitmap_name]['addresses']['last'])
-
-   g_granularity = int(config_file[bitmap_name]['addresses']['granularity'])
-   g_ip_size = g_first_ip.max_prefixlen
-
-   g_bit_vector_size  = get_index_from_ip(str(g_first_ip), str(g_last_ip), g_granularity)
-   g_byte_vector_size = int(math.ceil(g_bit_vector_size / 8))
-
-   # Get time window and interval
-   g_time_window = int(config_file[bitmap_name]['time']['window'])
-   g_intervals = int(config_file[bitmap_name]['time']['intervals'])
-   g_time_interval = int(config_file[bitmap_name]['time']['granularity'])
-   g_time_first = datetime.datetime.strptime(config_file[bitmap_name]['time']['first'], '%d-%m-%Y %H:%M:%S')
-
-
 # SIGTERM
 def sigterm_handler(signal, frame):
     sys.exit(0)
 
-def create_request_handler(args):
-   ''' Creates class for handling requests'''
+
+def create_handler(args, handler):
 
    # Create additional attributes and methods in handler
    class My_RequestHandler(BaseHTTPRequestHandler):
-
-      arguments = args # Input information
-
-      def binary_read(self, filename):
-         ''' Returns 2D bitarray of updated, transposed bitmap '''
-         global g_byte_vector_size, g_bit_vector_size, g_time_first
-         # xxd [[-b] bitmap_name
-
-         # Check if file exists and its size is bigger than 0
-         if os.path.isfile(self.arguments['dir'] + '/' + filename):
-            filesize = os.path.getsize(self.arguments['dir'] + '/' + filename)
-         else:
-            return None
-
-         if filesize == 0:
-            return None
-            
-         rows = int(filesize / g_byte_vector_size)
-
-         # Temporary bitmap for rows vectors
-         tmp_bitmap = {}
-         for i in range(rows):
-            tmp_bitmap[i] = bitarray()
-
-
-         # Reads file row by row (by intervals), fill tmp_bitmap
-         # 1 row == the whole address space in 1 time interval
-         try:
-            with open(self.arguments['dir'] + '/' + filename, 'rb') as fd:
-               for r in range(rows):
-                  byte_vector = fd.read(g_byte_vector_size)
-                  tmp_bitmap[r].frombytes(byte_vector)
-
-         except IOError:
-            print('File ' + self.arguments['dir'] + '/' + filename + ' could not be opened.')
-            sys.exit(1)
-
-         # Remove padding from the end of the vector if needed
-         trim_size = 8-(g_bit_vector_size % 8)
-         if trim_size < 8:
-            for r in range(rows):
-               tmp_bitmap[r] = tmp_bitmap[r][:-trim_size]
-
-         # Transpose bitmap
-         # 1 row == 1 IP in all intervals
-         transp_bitmap = {}
-
-         for i in range(g_bit_vector_size):
-            transp_bitmap[i] = bitarray()
-
-         # Go through intervals in tmp_bitmap, append to transposed
-         for r in range(rows):
-            for b in range(g_bit_vector_size):
-               transp_bitmap[b].append(tmp_bitmap[r][b])
-
-         # Shift by number of intervals from the beginning if online mode
-         index = (datetime.datetime.now() - g_time_first).total_seconds()
-         print("seconds from the start:", index)
-         #for r in range(rows):
-         #   transp_bitmap[r] = 
-
-         return transp_bitmap
-
-      def create_image(self, bitmap, filename):
-         ''' Create black and white image from bitmap '''
-         # http://stackoverflow.com/questions/5672756/binary-list-to-png-in-python
-
-         # Size of the image:
-         # height = address space, width = intervals in bitmap
-         height = len(list(bitmap))
-         width = len(bitmap[0])
-         print ('Creating image', height,'x', width)
-
-         # Save bitmap to buffer
-         img_buffer = []
-         for r in reversed(range(height)):
-            for b in range(width):
-               img_buffer.append(bitmap[r][b])
-            #print(bitmap[r])
-
-         # Create and save image
-         img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
-         image = Image.frombuffer('L', (width, height), img_data)
-         image.save(self.arguments['dir'] + '/images/' + filename + '.png')
-         return
-
-      def edit_bitmap(self, query):
-         ''' Can involve selecting area, changing size '''
-         global g_bitmap, g_selected_bitmap, g_first_ip
-         global g_selected_first_ip, g_selected_last_ip, g_selected_bit_vector_size
-
-         # Check if original bitmap exists
-         if g_bitmap is None:
-            return
-
-         tmp_bitmap = copy.deepcopy(g_bitmap)
-
-         # Do magic here
-         print ('Editing bitmap')
-
-         # Save selected IP range
-         if sys.version_info[0] == 2:
-            g_selected_first_ip = ipaddress.ip_address(unicode(query['first_ip'][0], "utf-8"))
-            g_selected_last_ip = ipaddress.ip_address(unicode(query['last_ip'][0], "utf-8"))
-         else:
-            g_selected_first_ip = ipaddress.ip_address(query['first_ip'][0])
-            g_selected_last_ip = ipaddress.ip_address(query['last_ip'][0])
-      
-
-         # Adjust IP range (deleting rows)
-         ip1_index = get_index_from_ip(str(g_first_ip), query['first_ip'][0], int(query['subnet_size'][0]))
-         ip2_index = get_index_from_ip(str(g_first_ip), query['last_ip'][0], int(query['subnet_size'][0]))
-         
-         # Save IP range length
-         g_selected_bit_vector_size = ip2_index - ip1_index
-
-         # Move bitmap [ip1_index - ip2_index] to [0 - g_selected_bit_vector_size]
-         for i in range(ip1_index, ip2_index):
-            tmp_bitmap[i-ip1_index] = tmp_bitmap[i]
-
-         # Delete the rest
-         for i in range(g_selected_bit_vector_size, len(g_bitmap)):
-            del tmp_bitmap[i]
-
-         # Adjust Interval range (deleting columns)
-
-         # Save interval range
-         g_selected_first_int = int(query['first_int'][0])
-         g_selected_last_int = int(query['last_int'][0])
-
-         # Delete intervals out of range from rows
-         for r in range(g_selected_bit_vector_size):
-            tmp_bitmap[r] = tmp_bitmap[r][g_selected_first_int:g_selected_last_int]
-
-         g_selected_bitmap = tmp_bitmap
-
+   
+      arguments = args
+      visualisation_handler = handler
+   
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
-         global g_granularity, g_first_ip, g_last_ip, g_time_interval
-         global g_time_window, g_bitmap, g_selected_bitmap, g_mode, g_intervals
-         global g_time_first
 
          # Check if mode is online
-         if g_mode == 'online':
+         if self.visualisation_handler.mode == 'online':
             # Check if config file has "end"
             try:
-               with open("config.yaml", 'r+') as fd:
+               with open(self.arguments['dir'] + '/' + self.arguments['config'], 'r+') as fd:
                   config_file = yaml.load(fd.read())
                   if config_file is None:
                      print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' failed.', file=sys.stderr)
                      sys.exit(1)
-                  elif ('end' in config_file[self.arguments['filename']]['module']):
-                     g_mode = 'offline'
+                  elif (('end' in config_file[self.arguments['filename']]['module']) and
+                        ('intervals' in config_file[self.arguments['filename']]['time'])):
+                     self.visualisation_handler.mode = 'offline'
+                     self.visualisation_handler.intervals = config_file[self.arguments['filename']]['time']['intervals']
+                     
             except IOError:
                print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' could not be opened.', file=sys.stderr)
                sys.exit(1)
             
-
+   
          if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
-
+   
             # Load source bitmap
-            #g_bitmap = self.binary_read(self.arguments['filename'] + '_s.bmap')
-            #for b in range(g_bit_vector_size):
-            #   print(g_bitmap[b])
-            #self.create_image(g_bitmap, "image_s")
-
+            #self.visualisation_handler.original_bitmap = self.visualisation_handler.binary_read(self.arguments['filename'] + '_s.bmap')
+            #for b in range(self.visualisation_handler.bit_vector_size):
+            #   print(self.visualisation_handler.original_bitmap[b])
+            #self.visualisation_handler.create_image(self.visualisation_handler.original_bitmap, "image_s")
+   
             # Open main HTML file
             try:
                with open('frontend.html', 'r') as fd:
                   self.send_response(200)
                   self.send_header('Content-type', 'text/html')
                   self.end_headers()
-
+   
                   # Find block for characteristics
                   html_file = BeautifulSoup(fd.read(), 'html.parser')
-
+   
                   # Insert characteristics
-                  html_file.find('td', 'subnet_size').append("/" + str(g_granularity))
-                  html_file.find('td', 'range').append(str(g_first_ip) + " - " + str(g_last_ip))
-                  html_file.find('td', 'int_range').append(str(g_intervals) + " intervals")
-                  html_file.find('td', 'time_interval').append(str(g_time_interval) + " seconds")
-                  html_file.find('td', 'time_window').append(str(g_time_window) + " intervals")
-                  html_file.find('td', 'mode').append(g_mode)
-
+                  html_file.find('td', 'subnet_size').append("/" + str(self.visualisation_handler.ip_granularity))
+                  html_file.find('td', 'range').append(str(self.visualisation_handler.first_ip) + " - " + str(self.visualisation_handler.last_ip))
+                  html_file.find('td', 'int_range').append(str(self.visualisation_handler.intervals) + " intervals")
+                  html_file.find('td', 'time_interval').append(str(self.visualisation_handler.time_granularity) + " seconds")
+                  html_file.find('td', 'time_window').append(str(self.visualisation_handler.time_window) + " intervals")
+                  html_file.find('td', 'mode').append(self.visualisation_handler.mode)
+   
                   #new_node = html_file.new_tag('td', src='image_s.png')
                   #html_node.append(new_node)
-
+   
                   self.wfile.write(html_file)
                   
             except IOError:
                print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
-
+   
          # Get rid of favicon requests
          elif self.path == '/favicon.ico':
             self.send_response(200)
             self.send_header('Content-type', 'image/x-icon')
             self.end_headers()
-
+   
          else:
             print('GET ' + self.path)
-
-            # Parse URL arguments
+   
+            # Parse URL self.arguments
             query = None
             index = self.path.find('?')
             if index >= 0:
                query = cgi.parse_qs(self.path[index+1:])
                self.path = self.path[:index]
-
+   
                # If bitmap update required, update
                if 'update' in query:
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
-                  g_bitmap = self.binary_read(self.arguments['filename'] +
-                                             '_' + bmap_type + '.bmap')
-                  if g_bitmap is not None:
-                     self.create_image(g_bitmap, 'image_' + bmap_type)
-
+                  self.visualisation_handler.original_bitmap = self.visualisation_handler.binary_read(
+                                        self.arguments['dir'] + '/' +
+                                        self.arguments['filename'] + '_' +
+                                        bmap_type + '.bmap')
+                  if self.visualisation_handler.original_bitmap is not None:
+                     self.visualisation_handler.create_image(self.visualisation_handler.original_bitmap, 'image_' + bmap_type)
+   
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
                    ('first_ip' in query) and ('ip_index' in query) and
                    ('interval' in query) and ('granularity' in query)):
-
+   
                   # Get IPs and subnet
                   tmp_ip = query['first_ip'][0]
                   tmp_granularity = int(query['granularity'][0])
                   tmp_index = int(query['ip_index'][0])
                   bitmap_type = query['bitmap_type'][0]
-                  tmp_ip = get_ip_from_index(tmp_ip, tmp_index, tmp_granularity)
-
+                  tmp_ip = self.visualisation_handler.get_ip_from_index(tmp_ip, tmp_index, tmp_granularity)
+   
                   # Get colour at coordinates
                   x = tmp_index
                   y = int(query['interval'][0])
-
-                  tmp_bitmap = g_bitmap if bitmap_type == 'origin' else g_selected_bitmap
-
+   
+                  tmp_bitmap = (self.visualisation_handler.original_bitmap if (bitmap_type == 'origin')
+                                else self.visualisation_handler.selected_bitmap)
+   
                   # Decrease to avoid overflow
                   if x >= len(tmp_bitmap):
                      x = len(tmp_bitmap) - 1
                   if y >= len(tmp_bitmap[0]):
                      y = len(tmp_bitmap[0]) - 1
                   colour = ("white" if ((tmp_bitmap is not None) and tmp_bitmap[x][y]) else "black")
-
+   
                   # Send needed information
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
@@ -490,24 +206,24 @@ def create_request_handler(args):
                   self.send_header('Cell_colour', colour)
                   self.end_headers()
                   return
-
+   
                # If selected area is required
                if (('select_area' in query) and ('bitmap_type' in query) and
                    ('subnet_size' in query) and ('first_ip' in query) and
                    ('last_ip' in query) and ('first_int' in query) and
                    ('last_int' in query) and ('time_interval' in query)):
-
+   
                   # Edit bitmap
-                  self.edit_bitmap(query)
-                  if g_selected_bitmap is not None:
-                     self.create_image(g_selected_bitmap, 'selected')
+                  self.visualisation_handler.edit_bitmap(query)
+                  if self.visualisation_handler.selected_bitmap is not None:
+                     self.visualisation_handler.create_image(self.visualisation_handler.selected_bitmap, 'selected')
                      # Set path to selected image
                      self.path = '/images/selected.png' # TODO will it be changed?
-
+   
             print('PATH ' + self.path)
-
+   
             open_mode = 'r'
-
+   
             # Detect type
             if self.path.endswith(".html"):
                content_type = 'text/html'
@@ -522,11 +238,11 @@ def create_request_handler(args):
                print("Path " + self.path + " was not recognized.", file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
-
+   
             # If bitmaps do not exist
             if ((query is not None) and
-                ((('update' in query) and (g_bitmap is None)) or
-                 (('selected_area' in query) and (g_selected_bitmap is None)))):
+                ((('update' in query) and (self.visualisation_handler.original_bitmap is None)) or
+                 (('selected_area' in query) and (self.visualisation_handler.selected_bitmap is None)))):
                self.send_response(200)
                self.send_header('Content-type', 'text/plain')
                self.send_header('Bitmap', 'none')
@@ -541,9 +257,10 @@ def create_request_handler(args):
                      # Send updated interval range and mode
                      if (query is not None) and ('update' in query):
                         self.send_header('Interval_range',
-                                        str(len(g_bitmap[0]) if ((g_bitmap is not None) and (len(g_bitmap) > 0)) else 0))
-                        self.send_header('Mode', g_mode)
-                        print (g_mode)
+                                        str(len(self.visualisation_handler.original_bitmap[0]) if (
+                                       (self.visualisation_handler.original_bitmap is not None) and (len(self.visualisation_handler.original_bitmap) > 0)) else 0))
+                        self.send_header('Mode', self.visualisation_handler.mode)
+                        print (self.visualisation_handler.mode)
    
                      # If image is sent via AJAX, encode to base64
                      if ((content_type == 'image/png') and (query is not None) and
@@ -560,16 +277,12 @@ def create_request_handler(args):
                   self.send_response(404)
                   sys.exit(1)
 
-
    return My_RequestHandler
 
 def main():
    ''' Main function for the lifecycle of the server. '''
-   global g_first_ip, g_last_ip, g_ip_size, g_granularity, g_bit_vector_size
-   global g_byte_vector_size, g_time_interval, g_time_window, g_bitmap
-   global g_time_first, g_mode, g_intervals
 
-   # Parse arguments
+   # Parse self.arguments
    parser = argparse.ArgumentParser()
    parser.add_argument('-p', '--port', type=int, default=8080,
                        help='Server port, (8080 by default)')
@@ -581,28 +294,27 @@ def main():
                        help='Path to configuration file (current directory by default).')
    parser.add_argument('-f', '--filename', type=str, default='bitmap',
                        help='Filename of bitmap storage files (bitmap by default).')
-   args = vars(parser.parse_args())
+   arguments = vars(parser.parse_args())
 
    # Check their validity
-   if not os.path.isfile(args['config']):
+   if not os.path.isfile(arguments['config']):
       print('Configuration file does not exist.', file=sys.stderr)
       sys.exit(1)
 
-   if not os.path.isdir(args['dir']):
+   if not os.path.isdir(arguments['dir']):
       print('Directory for web client files does not exist.', file=sys.stderr)
       sys.exit(1)
 
-   if (args['port'] > 65535) or (args['port'] < 1): # Skip registered?
+   if (arguments['port'] > 65535) or (arguments['port'] < 1): # Skip registered?
       print('Port not within allowed range.', file=sys.stderr)
       sys.exit(1)
 
    # Validate configuration file, create values
-   validate_config(args['filename'], args['dir'] + '/' + args['config']);
+   visualisation_handler = activity_visualisation.Visualisation_Handler()
+   visualisation_handler.load_config(arguments['dir'], arguments['filename'], arguments['config'])
 
-   # Create the server
-   ip_activity_RequestHandler = create_request_handler(args)
-
-   server = HTTPServer((args['hostname'], args['port']), ip_activity_RequestHandler)
+   # Create handler
+   server = HTTPServer((arguments['hostname'], arguments['port']),create_handler(arguments, visualisation_handler))
 
    # Set SIGTERM handler
    signal.signal(signal.SIGTERM, sigterm_handler)
