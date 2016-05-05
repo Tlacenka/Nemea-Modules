@@ -63,13 +63,13 @@ $(document).ready(function() {
    $('#selected').hide();
 
    // When changing bitmap type, get new bitmap, update CSS
-   $('#bitmap_type li').click(function() {
+   $('.bitmap_list li').click(function() {
 
-      if (!($(this).hasClass('chosen_type'))) {
+      if (!($(this).hasClass('chosen'))) {
 
          // Switch class to current type
-         $('#bitmap_type li.chosen_type').removeClass();
-         $(this).addClass('chosen_type');
+         $('#' + $(this).closest('ul').attr('id') + ' li.chosen').removeClass();
+         $(this).addClass('chosen');
 
          // Update bitmap immediately
          if (mode === 'online') {
@@ -97,13 +97,14 @@ $(document).ready(function() {
 
       // Filename to be added
       var image = 'images/image_' + get_bitmap_type() + '.png';
-      http_GET(image, set_bitmap, 'update=true');
+      var query = 'update=true&size=' + get_bitmap_size();
+      http_GET(image, set_bitmap, query);
    }
 
    // Returns bitmap type
    function get_bitmap_type () {
 
-      var value = $('#bitmap_type li.chosen_type').html();
+      var value = $('#bitmap_type li.chosen').html();
       var type = '';
 
       if (value === 'Source IPs') {
@@ -115,6 +116,11 @@ $(document).ready(function() {
       }
 
       return type;
+   }
+
+   function get_bitmap_size () {
+
+      return $('#bitmap_size li.chosen').html().split(":")[0];
    }
 
    // Universal function for all asynchronous GET requests
@@ -194,7 +200,7 @@ $(document).ready(function() {
 
       // Update characteristics of selected area
       $('#selected').show();
-      document.getElementById('selected_type').innerHTML = $('#bitmap_type li.chosen_type').html();
+      document.getElementById('selected_type').innerHTML = $('#bitmap_type li.chosen').html();
       document.getElementById('selected_ip_range').innerHTML = first_ip + ' - ' + last_ip;
       document.getElementById('selected_int_range').innerHTML = first_int + ' - ' + last_int;
       document.getElementById('selected_time_unit').innerHTML = time_unit;
@@ -204,7 +210,7 @@ $(document).ready(function() {
       var curr_index = $('.selected_stats #selected_ip_range').html().split(" ")[0];
       var curr_colour = 'black';
       document.getElementById('selected_curr_IP').innerHTML = curr_index +
-                                                     $('.selected_stats #selected_subnet_size').html();
+                                                     $('.bitmap_stats td.subnet_size').html();
       document.getElementById('selected_curr_interval').innerHTML = $('.selected_stats #selected_int_range').html().split(" ")[0];
       $('th.selected_curr_colour').css({
          'background': 'black',

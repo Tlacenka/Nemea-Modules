@@ -140,7 +140,7 @@ div.floatable {
    max-width: 50%;
 }
 
-#origin #bitmap_type li {
+#origin .bitmap_list li {
    float: left;
    display: block;
    border: solid LightSlateGray;
@@ -151,7 +151,7 @@ div.floatable {
    background-color: LightSteelBlue;
 }
 
-#origin #bitmap_type li.chosen_type {
+#origin .bitmap_list li.chosen {
    background-color: LightSlateGray;
    color: white;
    box-shadow: -1px -1px 1px DarkSlateGray inset;
