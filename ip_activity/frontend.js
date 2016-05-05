@@ -98,7 +98,7 @@ $(document).ready(function() {
 
       // Filename to be added
       var image = 'images/image_' + get_bitmap_type() + '.png';
-      var query = 'update=true&size=' + get_bitmap_size();
+      var query = 'update=true&scale=' + get_bitmap_scale();
       http_GET(image, set_bitmap, query);
    }
 
@@ -119,7 +119,7 @@ $(document).ready(function() {
       return type;
    }
 
-   function get_bitmap_size () {
+   function get_bitmap_scale () {
 
       return $('#bitmap_size li.chosen').html().split(":")[0];
    }
@@ -311,6 +311,10 @@ $(document).ready(function() {
          //console.log(x + " " + y);
          return;
       }
+
+      // If scale is greater than 1, divide index
+      x = Math.floor(x / get_bitmap_scale());
+      y = Math.floor(y / get_bitmap_scale());
 
       // Origin x selected
       var classname = '';

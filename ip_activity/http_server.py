@@ -183,7 +183,7 @@ def create_handler(args, handler):
                self.path = self.path[:index]
    
                # If bitmap update required, update
-               if 'update' in query:
+               if ('update' in query) and ('scale' in query):
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
                   self.v_handler.original_bitmap = self.v_handler.binary_read(
@@ -192,7 +192,7 @@ def create_handler(args, handler):
                                         bmap_type + '.bmap')
                   if self.v_handler.original_bitmap is not None:
                      self.v_handler.create_image(self.v_handler.original_bitmap,
-                                                 'image_' + bmap_type)
+                                                 'image_' + bmap_type, int(query['scale'][0]))
    
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
@@ -248,7 +248,7 @@ def create_handler(args, handler):
                   # Edit bitmap
                   self.v_handler.edit_bitmap(query)
                   if self.v_handler.selected_bitmap is not None:
-                     self.v_handler.create_image(self.v_handler.selected_bitmap, 'selected')
+                     self.v_handler.create_image(self.v_handler.selected_bitmap, 'selected', 1)
                      # Set path to selected image
                      self.path = '/images/selected.png'
    

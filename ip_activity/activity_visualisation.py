@@ -327,7 +327,7 @@ class Visualisation_Handler:
          pass
          
 
-   def create_image(self, bitmap, filename):
+   def create_image(self, bitmap, filename, scale):
       ''' Create black and white image from bitmap '''
       # http://stackoverflow.com/questions/5672756/binary-list-to-png-in-python
 
@@ -335,18 +335,20 @@ class Visualisation_Handler:
       # height = address space, width = intervals in bitmap
       height = len(list(bitmap))
       width = len(bitmap[0])
-      print ('Creating image', height,'x', width)
+      print ('Creating image', height,'x', width, str(scale) + ':1')
 
       # Save bitmap to buffer
       img_buffer = []
       for r in reversed(range(height)):
-         for b in range(width):
-            img_buffer.append(bitmap[r][b])
+         for rs in range(scale):
+            for b in range(width):
+               for bs in range(scale):
+                  img_buffer.append(bitmap[r][b])
          #print(bitmap[r])
 
       # Create and save image
       img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
-      image = Image.frombuffer('L', (width, height), img_data)
+      image = Image.frombuffer('L', (width * scale, height * scale), img_data)
       image.save(self.directory + '/images/' + filename + '.png')
 
 
