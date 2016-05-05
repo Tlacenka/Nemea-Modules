@@ -160,19 +160,19 @@ class Visualisation_Handler:
          # Last time is current time
          self.mode = 'online'
          self.time_last = datetime.datetime.now()
-         self.intervals = int(math.floor((self.time_last -
-                              self.time_first).total_seconds() /
-                              self.time_granularity))
+         self.intervals = self.get_index_from_times(self.time_first,
+                                                    self.time_last,
+                                                    self.time_granularity)
 
-         print(datetime.datetime.strftime(self.time_first, '%d-%m-%Y %H:%M:%S'))
-         print(datetime.datetime.strftime(self.time_last, '%d-%m-%Y %H:%M:%S'))
-         print("interval length", self.time_granularity)
-         print("intervals", self.intervals)
+         #print(datetime.datetime.strftime(self.time_first, '%d-%m-%Y %H:%M:%S'))
+         #print(datetime.datetime.strftime(self.time_last, '%d-%m-%Y %H:%M:%S'))
+         #print("interval length", self.time_granularity)
+         #print("intervals", self.intervals)
 
       # If time first was earlier than a window ago, calculate a new
       # first time for displayed data on client
       if (self.time_last - self.time_first).total_seconds() > self.time_window:
-         self.time_first = self.time_last - datetime.timedelta(seconds=self.time_window)
+         self.time_first = self.time_last - datetime.timedelta(seconds=self.time_window * self.time_granularity)
          print(str(self.time_first))
          print(str(self.time_last))
 
@@ -250,7 +250,7 @@ class Visualisation_Handler:
          for b in range(self.bit_vector_size):
             transp_bitmap[b].append(tmp_bitmap[r][b])
 
-      # Shift by number of intervals from the beginning if online mode
+      # TODO:Shift by number of intervals from the beginning if online mode
       index = (datetime.datetime.now() - self.time_first).total_seconds()
       print("seconds from the start:", index)
       #for r in range(rows):
@@ -323,32 +323,37 @@ class Visualisation_Handler:
 
    def get_time_from_interval(self, interval_index):
       ''' Returns time string at index '''
-      if mode == 'offline':
-         pass
+      return self.time_first + datetime.timedelta(seconds=interval_index * self.time_granularity)
          
+   def get_index_from_times(self, time1, time2, granularity):
+      ''' Returns seconds between time1 and time2 in granularity '''
+      return int(math.floor((time2 - time1).total_seconds() / granularity))
 
-   def create_image(self, bitmap, filename, scale):
-      ''' Create black and white image from bitmap '''
+
+   def create_image(self, bitmap, filename, scaleR, scaleC):
+      ''' Create black and white image from bitmap
+          Scales bitmap - scaleR:1 for rows, scaleC:1 for columns'''
       # http://stackoverflow.com/questions/5672756/binary-list-to-png-in-python
 
       # Size of the image:
       # height = address space, width = intervals in bitmap
       height = len(list(bitmap))
       width = len(bitmap[0])
-      print ('Creating image', height,'x', width, str(scale) + ':1')
+      print ('Creating image', str(height) + 'x' + str(width),
+             'rows: ' + str(scaleR) + ':1', 'cols: ' + str(scaleC) + ':1')
 
       # Save bitmap to buffer
       img_buffer = []
       for r in reversed(range(height)):
-         for rs in range(scale):
-            for b in range(width):
-               for bs in range(scale):
-                  img_buffer.append(bitmap[r][b])
+         for rs in range(scaleR):
+            for c in range(width):
+               for cs in range(scaleC):
+                  img_buffer.append(bitmap[r][c])
          #print(bitmap[r])
 
       # Create and save image
       img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
-      image = Image.frombuffer('L', (width * scale, height * scale), img_data)
+      image = Image.frombuffer('L', (width * scaleC, height * scaleR), img_data)
       image.save(self.directory + '/images/' + filename + '.png')
 
 
@@ -395,12 +400,18 @@ class Visualisation_Handler:
       # Adjust Interval range (deleting columns)
 
       # Save interval range
-      self.selected_first_int = int(query['first_int'][0])
-      self.selected_last_int = int(query['last_int'][0])
+      self.selected_first_int = datetime.datetime.strptime(query['first_int'][0], self.time_format)
+      self.selected_last_int = datetime.datetime.strptime(query['last_int'][0], self.time_format)
 
       # Delete intervals out of range from rows
+      first_index = self.get_index_from_times(self.time_first,
+                                              self.selected_first_int,
+                                              self.time_granularity)
+      last_index = self.get_index_from_times(self.time_first,
+                                             self.selected_last_int,
+                                             self.time_granularity)
       for r in range(self.selected_bit_vector_size):
-         tmp_bitmap[r] = tmp_bitmap[r][self.selected_first_int:self.selected_last_int]
+         tmp_bitmap[r] = tmp_bitmap[r][first_index:last_index]
 
       self.selected_bitmap = tmp_bitmap
 

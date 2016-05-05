@@ -192,7 +192,9 @@ def create_handler(args, handler):
                                         bmap_type + '.bmap')
                   if self.v_handler.original_bitmap is not None:
                      self.v_handler.create_image(self.v_handler.original_bitmap,
-                                                 'image_' + bmap_type, int(query['scale'][0]))
+                                                 'image_' + bmap_type,
+                                                 int(query['scale'][0]),
+                                                 int(query['scale'][0]))
    
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
@@ -228,15 +230,15 @@ def create_handler(args, handler):
                      colour = "black"
    
 
-                  tmp_time = "sasa"
-                  #tmp_time = self.v_handler.get_time_from_interval(tmp_time)
+                  tmp_time = self.v_handler.get_time_from_interval(y)
 
                   # Send needed information
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
                   self.send_header('IP_index', tmp_ip)
                   self.send_header('Cell_colour', colour)
-                  self.send_header('Time_index', tmp_time)
+                  self.send_header('Time_index', datetime.datetime.strftime(tmp_time,
+                                                 self.v_handler.time_format))
                   self.end_headers()
                   return
    
@@ -247,8 +249,17 @@ def create_handler(args, handler):
    
                   # Edit bitmap
                   self.v_handler.edit_bitmap(query)
-                  if self.v_handler.selected_bitmap is not None:
-                     self.v_handler.create_image(self.v_handler.selected_bitmap, 'selected', 1)
+                  if ((self.v_handler.original_bitmap is not None) and
+                      (self.v_handler.selected_bitmap is not None) and
+                       (len(list(self.v_handler.selected_bitmap)) > 0) and
+                       (len(self.v_handler.selected_bitmap[0]) > 0)):
+                     # TODO add scaling based on bitmap size
+                     scaleRow = math.floor(len(list(self.v_handler.original_bitmap)) /
+                                           len(list(self.v_handler.selected_bitmap)))
+                     scaleCol = math.floor(len(self.v_handler.original_bitmap[0]) /
+                                           len(self.v_handler.selected_bitmap[0]))
+                     self.v_handler.create_image(self.v_handler.selected_bitmap,
+                                                'selected', scaleRow, scaleCol)
                      # Set path to selected image
                      self.path = '/images/selected.png'
    

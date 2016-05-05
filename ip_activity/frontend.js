@@ -22,20 +22,24 @@ $(document).ready(function() {
 
    // TODO with each update, decrease chosen interval range? or...?
 
+   var time_range_min = Date.parse($('.bitmap_stats td.first_time').text().replace(" ", "T"));
+   var time_range_max = Date.parse($('.bitmap_stats td.last_time').text().replace(" ", "T"));
+
    // IP index and colour initialisation
    // Original bitmap
    var curr_index = $('.bitmap_stats td.range').html().split(" ")[0];
    var curr_colour = 'black';
+   var curr_interval = $('.bitmap_stats td.first_time').text();
    document.getElementById('origin_curr_IP').innerHTML = curr_index +
                                                   $('.bitmap_stats td.subnet_size').html();
-   document.getElementById('origin_curr_interval').innerHTML = 0;
+   document.getElementById('origin_curr_interval').innerHTML = curr_interval;
    $('th.origin_curr_colour').css({
       'background': 'black',
       'color': 'white'
    });
 
    var down_ip = curr_index;
-   var down_int = 0;
+   var down_int = curr_interval;
 
    // Initialise limits for input
    var ip_version = 4;
@@ -43,8 +47,7 @@ $(document).ready(function() {
       ip_version = 6;
    }
 
-   var time_range_min = Date.parse($('.bitmap_stats td.first_time').text().replace(" ", "T"));
-   var time_range_max = Date.parse($('.bitmap_stats td.last_time').text().replace(" ", "T"));
+   
 
    // Units of selected area
    var time_unit = 1;
@@ -58,8 +61,8 @@ $(document).ready(function() {
    // Initialize form values
    $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
-   $('.bitmap_options input.first_int').val($('.bitmap_stats td.first_time').text().replace("T", " "));
-   $('.bitmap_options input.last_int').val($('.bitmap_stats td.last_time').text().replace("T", " "));
+   $('.bitmap_options input.first_int').val($('.bitmap_stats td.first_time').text());
+   $('.bitmap_options input.last_int').val($('.bitmap_stats td.last_time').text());
 
    $('#selected').hide();
 
@@ -166,7 +169,6 @@ $(document).ready(function() {
           last_ip = $('#bitmap_form input.last_ip').val(),
           first_int = Date.parse($('#bitmap_form input.first_int').val().replace(" ", "T")), 
           last_int = Date.parse($('#bitmap_form input.last_int').val().replace(" ", "T"));
-      console.log("first int: " + first_int);
 
       // Validate time range
       if (isNaN(first_int) || isNaN(first_int) ||
@@ -293,6 +295,7 @@ $(document).ready(function() {
    function set_curr_position(http_request) {
       curr_index = http_request.getResponseHeader('IP_index');
       curr_colour = http_request.getResponseHeader('Cell_colour');
+      curr_interval = http_request.getResponseHeader('Time_index');
    }
 
 
@@ -341,17 +344,15 @@ $(document).ready(function() {
       http_GET('', set_curr_position, arguments);
 
       // Update current position
-      if (classname === 'origin') {
-         document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
+      document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
                                         $('.bitmap_stats td.subnet_size').html();
+      if (classname === 'origin') {
          if (x == parseInt($('.bitmap_stats td.int_range').html())) {
             x--;
          }
          document.getElementById(classname + '_curr_interval').innerHTML = x;
       } else {
          // Move coordinates based on selected area
-         document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
-                                        $('.bitmap_stats td.subnet_size').html();
          if (x == parseInt($('.selected_stats #selected_int_range').html().split(' ')[2])) {
             x--;
          }
@@ -397,7 +398,7 @@ $(document).ready(function() {
 
       // Save values
       down_ip = curr_index;
-      down_int = parseInt($('#origin_curr_interval').html());
+      down_int = curr_interval;
    });
 
    // Returns statement, if ip1 <= ip2
@@ -472,8 +473,9 @@ $(document).ready(function() {
          }
    
          var int1 = down_int;
-         var int2 = parseInt($('#origin_curr_interval').html());
-         if (int1 <= int2) {
+         var int2 = curr_interval;
+         if (Date.parse(int1.replace(" ", "T")) <=
+             Date.parse(int2.replace(" ", "T"))) {
             $('.bitmap_options input.first_int').val(int1);
             $('.bitmap_options input.last_int').val(int2);
          } else {
