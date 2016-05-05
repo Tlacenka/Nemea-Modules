@@ -82,6 +82,7 @@ class Visualisation_Handler:
       self.intervals = 0
       self.time_granularity = 0
       self.time_first = None
+      self.time_last = None
 
       # Selected area variables
       self.selected_first_ip = None
@@ -134,22 +135,29 @@ class Visualisation_Handler:
 
       # Check mode
       if (('end' in config_file[self.bitmap_filename]['module']) and
-          ('intervals' in config_file[self.bitmap_filename]['time'])):
+          ('intervals' in config_file[self.bitmap_filename]['time']) and
+          ('last' in config_file[self.bitmap_filename]['time'])):
+         # In offline mode, last interval ends at [time][last]
          self.mode = 'offline'
-         self.intervals = config_file[self.bitmap_filename]['time']['intervals']
+         self.intervals = int(config_file[self.bitmap_filename]['time']['intervals'])
+         if config_file[self.bitmap_filename]['time']['last'] == 'undefined':
+            print('Last record time is undefined > less than one flow recorded.', file=sys.stderr)
+            sys.exit(1)
+         self.time_last = datetime.datetime.strptime(config_file[self.bitmap_filename]['time']['last'], '%d-%m-%Y %H:%M:%S')
       elif (('end' in config_file[self.bitmap_filename]['module']) or
-            ('intervals' in config_file[self.bitmap_filename]['time'])):
+            ('intervals' in config_file[self.bitmap_filename]['time']) or 
+            ('last' in config_file[self.bitmap_filename]['time'])):
          print('Configuration file structure is invalid.', file=sys.stderr)
          sys.exit(1)
       else:
          # Calculate intervals from elapsed time and interval length
+         # Last time is current time
          self.mode = 'online'
-         #start = datetime.datetime.timedelta(seconds=self.time_first.total_seconds())
-         now = datetime.datetime.now()
-         self.intervals = int(math.floor((now - self.time_first).total_seconds()/self.time_granularity))
+         self.time_last = datetime.datetime.now()
+         self.intervals = int(math.floor((self.time_last - self.time_first).total_seconds()/self.time_granularity))
 
          print(datetime.datetime.strftime(self.time_first, '%d-%m-%Y %H:%M:%S'))
-         print(datetime.datetime.strftime(now, '%d-%m-%Y %H:%M:%S'))
+         print(datetime.datetime.strftime(self.time_last, '%d-%m-%Y %H:%M:%S'))
          print("interval length", self.time_granularity)
          print("intervals", self.intervals)
    
@@ -293,6 +301,11 @@ class Visualisation_Handler:
       # Get index
       return int(shifted_2) - int(shifted_1)
 
+   def get_time_from_interval(self, interval_index):
+      ''' Returns time string at index '''
+      if mode == 'offline':
+         pass
+         
 
    def create_image(self, bitmap, filename):
       ''' Create black and white image from bitmap '''

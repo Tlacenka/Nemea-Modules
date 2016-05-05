@@ -43,7 +43,10 @@ $(document).ready(function() {
       ip_version = 6;
    }
 
-   var int_range_max = $('.bitmap_stats td.int_range').html().split(" ")[0];
+   var time_range_min_str = $('.bitmap_stats td.first_time').text();
+   var time_range_max_str = $('.bitmap_stats td.last_time').text();
+   var time_range_min = Date.parse($('.bitmap_stats td.first_time').text());
+   var time_range_max = Date.parse($('.bitmap_stats td.last_time').text());
 
    // Units of selected area
    var time_unit = 1;
@@ -57,8 +60,8 @@ $(document).ready(function() {
    // Initialize form values
    $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
-   $('.bitmap_options input.first_int').val(0);
-   $('.bitmap_options input.last_int').val(parseInt($('.bitmap_stats td.int_range').html().split(" ")[0]));
+   $('.bitmap_options input.first_int').val($('.bitmap_stats td.first_time').text());
+   $('.bitmap_options input.last_int').val($('.bitmap_stats td.last_time').text());
 
    $('#selected').hide();
 
@@ -163,12 +166,13 @@ $(document).ready(function() {
       var type = get_bitmap_type(),
           first_ip = $('#bitmap_form input.first_ip').val(),
           last_ip = $('#bitmap_form input.last_ip').val(),
-          first_int = $('#bitmap_form input.first_int').val(), 
-          last_int = $('#bitmap_form input.last_int').val();
+          first_int = Date.parse($('#bitmap_form input.first_int').val()), 
+          last_int = Date.parse($('#bitmap_form input.last_int').val());
 
       // Validate parameters
-      if ((parseInt(first_int) < 0) || (parseInt(last_int) > int_range_max) ||
-          (parseInt(first_int) > parseInt(last_int))) {
+      if (first_int.isNaN() || last_int.isNaN() ||
+         (first_int < time_range_min) || (first_int > time_range_max) ||
+         (last_int < time_range_min) || (last_int > time_range_max)) {
          alert('Intervals must be between 0 and ' + int_range_max + '.');
          return;
       }
@@ -246,37 +250,6 @@ $(document).ready(function() {
       }
    }
 
-   // Change text in input
-   $('img.btn').click(function(){
-      var value = parseInt($(this).siblings('input').val());
-      var classname = $(this).siblings('input').attr('class');
-      // Get limit based on type of input
-      var limit = int_range_max;
-      
-      if ($(this).hasClass('first_int')) {
-         value = parseInt($(this).siblings('input.first_int').val());
-         classname = 'first_int';
-      } else if ($(this).hasClass('last_int')) {
-         value = parseInt($(this).siblings('input.last_int').val());
-         classname = 'last_int'
-      }
-
-      // Increment/decrement
-      if (value > limit) {
-         $(this).siblings('input.' + classname).val(limit);
-      } else if (value < 0) {
-         $(this).siblings('input.' + classname).val(0);
-      } else {
-         if ($(this).hasClass('form_incr') && (value < limit)) {
-            $(this).siblings('input.' + classname).val(value + 1);
-         } else if ($(this).hasClass('form_decr') && (value > 0)) {
-            $(this).siblings('input.' + classname).val(value - 1);
-         }
-      }
-
-      // TODO Cover first and last interval + IP > first cannot be greater than last
-   });
-
    // Set bitmap if sent
    function set_bitmap(http_request)
    {
@@ -313,7 +286,7 @@ $(document).ready(function() {
    }
 
    // Set IP index and cell colour
-   function set_ip_index(http_request) {
+   function set_curr_position(http_request) {
       curr_index = http_request.getResponseHeader('IP_index');
       curr_colour = http_request.getResponseHeader('Cell_colour');
    }
@@ -345,24 +318,19 @@ $(document).ready(function() {
 
       // Get IP at index
       var first_ip = '';
-      var granularity = 0;
       if (classname === 'origin') {
          first_ip = $('.bitmap_stats td.range').html().split(" ")[0];
       } else {
          first_ip= $('.selected_stats #selected_ip_range').html().split(" ")[0];
       }
-      granularity = $('.bitmap_stats td.subnet_size').html().slice('1');
-      
-
 
       var arguments = 'calculate_index=true' +
                       '&bitmap_type=' + classname +
                       '&first_ip=' + first_ip +
                       '&ip_index=' + y +
-                      '&granularity=' + granularity +
                       '&interval=' + x;
 
-      http_GET('', set_ip_index, arguments);
+      http_GET('', set_curr_position, arguments);
 
       // Update current position
       if (classname === 'origin') {

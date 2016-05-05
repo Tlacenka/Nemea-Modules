@@ -98,12 +98,18 @@ def create_handler(args, handler):
                with open(self.arguments['dir'] + '/' + self.arguments['config'], 'r+') as fd:
                   config_file = yaml.load(fd.read())
                   if config_file is None:
-                     print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' failed.', file=sys.stderr)
+                     print('Configuration file ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' failed.', file=sys.stderr)
                      sys.exit(1)
                   elif (('end' in config_file[self.arguments['filename']]['module']) and
-                        ('intervals' in config_file[self.arguments['filename']]['time'])):
+                        ('intervals' in config_file[self.arguments['filename']]['time']) and
+                        ('last' in config_file[self.arguments['filename']]['time'])):
+                     # Change mode to offline
                      self.visualisation_handler.mode = 'offline'
                      self.visualisation_handler.intervals = config_file[self.arguments['filename']]['time']['intervals']
+                     self.visualisation_handler.time_last = config_file[self.arguments['filename']]['time']['last']
+                  else:
+                     # Change time_last to current time
+                     self.visualisation_handler.time_last = datetime.datetime.now()
                      
             except IOError:
                print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' could not be opened.', file=sys.stderr)
@@ -131,18 +137,13 @@ def create_handler(args, handler):
                   # Insert characteristics
                   html_file.find('td', 'subnet_size').append("/" + str(self.visualisation_handler.ip_granularity))
                   html_file.find('td', 'range').append(str(self.visualisation_handler.first_ip) + " - " + str(self.visualisation_handler.last_ip))
-                  if (self.visualisation_handler.intervals > self.visualisation_handler.time_window):
-                     html_file.find('td', 'int_range').append(str(self.visualisation_handler.time_window) + " intervals")
-                  else:
-                     html_file.find('td', 'int_range').append(str(self.visualisation_handler.intervals) + " intervals")
+                  html_file.find('td', 'first_time').append(datetime.datetime.strftime(self.visualisation_handler.time_first, '%d-%m-%Y %H:%M:%S'))
+                  html_file.find('td', 'last_time').append(datetime.datetime.strftime(self.visualisation_handler.time_last, '%d-%m-%Y %H:%M:%S'))
 
                   html_file.find('td', 'time_interval').append(str(self.visualisation_handler.time_granularity) + " seconds")
                   html_file.find('td', 'time_window').append(str(self.visualisation_handler.time_window) + " intervals")
                   html_file.find('td', 'mode').append(self.visualisation_handler.mode)
-   
-                  #new_node = html_file.new_tag('td', src='image_s.png')
-                  #html_node.append(new_node)
-   
+
                   self.wfile.write(html_file)
                   
             except IOError:
@@ -180,14 +181,14 @@ def create_handler(args, handler):
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
                    ('first_ip' in query) and ('ip_index' in query) and
-                   ('interval' in query) and ('granularity' in query)):
+                   ('interval' in query)):
    
                   # Get IPs and subnet
                   tmp_ip = query['first_ip'][0]
-                  tmp_granularity = int(query['granularity'][0])
                   tmp_index = int(query['ip_index'][0])
                   bitmap_type = query['bitmap_type'][0]
-                  tmp_ip = self.visualisation_handler.get_ip_from_index(tmp_ip, tmp_index, tmp_granularity)
+
+                  tmp_ip = self.visualisation_handler.get_ip_from_index(tmp_ip, tmp_index, visualisation_handler.ip_granularity)
    
                   # Get colour at coordinates
                   x = tmp_index
@@ -195,7 +196,7 @@ def create_handler(args, handler):
    
                   tmp_bitmap = (self.visualisation_handler.original_bitmap if (bitmap_type == 'origin')
                                 else self.visualisation_handler.selected_bitmap)
-   
+
                   # Decrease to avoid overflow
                   if x >= len(tmp_bitmap):
                      x = len(tmp_bitmap) - 1
@@ -203,11 +204,15 @@ def create_handler(args, handler):
                      y = len(tmp_bitmap[0]) - 1
                   colour = ("white" if ((tmp_bitmap is not None) and tmp_bitmap[x][y]) else "black")
    
+
+                  tmp_time = self.visualisation_handler.get_time_from_interval(tmp_time)
+
                   # Send needed information
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
                   self.send_header('IP_index', tmp_ip)
                   self.send_header('Cell_colour', colour)
+                  self.send_header('Time_index', tmp_time)
                   self.end_headers()
                   return
    
