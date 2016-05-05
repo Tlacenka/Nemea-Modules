@@ -199,38 +199,39 @@ def create_handler(args, handler):
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
                    ('first_ip' in query) and ('ip_index' in query) and
-                   ('interval' in query)):
+                   ('first_time' in query) and ('time_index' in query)):
    
-                  # Get IPs and subnet
+                  # Get variables
                   tmp_ip = query['first_ip'][0]
-                  tmp_index = int(query['ip_index'][0])
                   bitmap_type = query['bitmap_type'][0]
+                  tmp_time = datetime.datetime.strptime(query['first_time'][0],
+                             self.v_handler.time_format)
+                  colour = "black"
 
-                  tmp_ip = self.v_handler.get_ip_from_index(tmp_ip,
-                           tmp_index, self.v_handler.ip_granularity)
-   
-                  # Get colour at coordinates
-                  x = tmp_index
-                  y = int(query['interval'][0])
+                  # Get coordinates
+                  x = int(query['ip_index'][0])
+                  y = int(query['time_index'][0])
 
+                  # Get bitmap
                   if (bitmap_type == 'origin'):
                      tmp_bitmap = self.v_handler.original_bitmap
                   else:
                      tmp_bitmap = self.v_handler.selected_bitmap
 
-                  # Decrease to avoid overflow
-                  if x >= len(tmp_bitmap):
-                     x = len(tmp_bitmap) - 1
-                  if y >= len(tmp_bitmap[0]):
-                     y = len(tmp_bitmap[0]) - 1
-
-                  if (tmp_bitmap is not None) and tmp_bitmap[x][y]:
-                     colour = "white"
-                  else:
-                     colour = "black"
+                  
+                  if (tmp_bitmap is not None) and (len(tmp_bitmap) > 0):
+                     # Decrease to avoid overflow
+                     if x >= len(tmp_bitmap):
+                        x = len(tmp_bitmap) - 1
+                     if y >= len(tmp_bitmap[0]):
+                        y = len(tmp_bitmap[0]) - 1
    
-
-                  tmp_time = self.v_handler.get_time_from_interval(y)
+                     # Get IP, time and colour
+                     tmp_ip = self.v_handler.get_ip_from_index(tmp_ip,
+                              x, self.v_handler.ip_granularity)
+                     tmp_time = self.v_handler.get_time_from_index(tmp_time,
+                              y, self.v_handler.time_granularity)
+                     colour = "white" if tmp_bitmap[x][y] else "black"
 
                   # Send needed information
                   self.send_response(200)
@@ -254,10 +255,10 @@ def create_handler(args, handler):
                        (len(list(self.v_handler.selected_bitmap)) > 0) and
                        (len(self.v_handler.selected_bitmap[0]) > 0)):
                      # TODO add scaling based on bitmap size
-                     scaleRow = math.floor(len(list(self.v_handler.original_bitmap)) /
-                                           len(list(self.v_handler.selected_bitmap)))
-                     scaleCol = math.floor(len(self.v_handler.original_bitmap[0]) /
-                                           len(self.v_handler.selected_bitmap[0]))
+                     scaleRow = int(math.floor(len(list(self.v_handler.original_bitmap)) /
+                                           len(list(self.v_handler.selected_bitmap))))
+                     scaleCol = int(math.floor(len(self.v_handler.original_bitmap[0]) /
+                                           len(self.v_handler.selected_bitmap[0])))
                      self.v_handler.create_image(self.v_handler.selected_bitmap,
                                                 'selected', scaleRow, scaleCol)
                      # Set path to selected image
@@ -308,7 +309,12 @@ def create_handler(args, handler):
 
                         self.send_header('Mode', self.v_handler.mode)
                         print (self.v_handler.mode)
-   
+
+                     # Send scaling
+                     if (query is not None) and ('select_area' in query):
+                        self.send_header('IP_unit', str(scaleRow))
+                        self.send_header('Time_unit', str(scaleCol))
+
                      # If image is sent via AJAX, encode to base64
                      if ((content_type == 'image/png') and (query is not None) and
                         (('update' in query) or ('select_area' in query))):

@@ -50,8 +50,6 @@ $(document).ready(function() {
    
 
    // Units of selected area
-   var time_unit = 1;
-   var ip_unit = 1;
 
    // Mouse position for drag event
    var mouse_X = -1;
@@ -101,7 +99,7 @@ $(document).ready(function() {
 
       // Filename to be added
       var image = 'images/image_' + get_bitmap_type() + '.png';
-      var query = 'update=true&scale=' + get_bitmap_scale();
+      var query = 'update=true&scale=' + get_bitmap_scale('origin').split(" ")[0];
       http_GET(image, set_bitmap, query);
    }
 
@@ -122,9 +120,16 @@ $(document).ready(function() {
       return type;
    }
 
-   function get_bitmap_scale () {
-
-      return $('#bitmap_size li.chosen').html().split(":")[0];
+   // Returns scale for both dimensions "<scale for x> <scale for y>"
+   function get_bitmap_scale(type) {
+      if (type === 'origin') {
+         var scale = $('#bitmap_size li.chosen').html().split(":")[0] +
+               " " + $('#bitmap_size li.chosen').html().split(":")[0];
+      } else {
+         var scale = $('#selected_time_unit').text() + " " +
+                     $('#selected_ip_unit').text();
+      }
+      return scale;
    }
 
    // Universal function for all asynchronous GET requests
@@ -213,8 +218,6 @@ $(document).ready(function() {
       document.getElementById('selected_ip_range').innerHTML = first_ip + ' - ' + last_ip;
       document.getElementById('selected_int_range_first').innerHTML = $('#bitmap_form input.first_int').val();
       document.getElementById('selected_int_range_last').innerHTML = $('#bitmap_form input.last_int').val();
-      document.getElementById('selected_time_unit').innerHTML = time_unit;
-      document.getElementById('selected_ip_unit').innerHTML = ip_unit;
 
       // Set current position
       var curr_index = $('.selected_stats #selected_ip_range').html().split(" ")[0];
@@ -253,6 +256,10 @@ $(document).ready(function() {
          $('#selected_area').css({
             'margin-top': '50px'
          });
+
+         document.getElementById('selected_time_unit').innerHTML = http_request.getResponseHeader('Time_unit');
+         document.getElementById('selected_ip_unit').innerHTML = http_request.getResponseHeader('IP_unit');
+
       }
    }
 
@@ -308,16 +315,9 @@ $(document).ready(function() {
       var x = parseInt(event.pageX - $(this).position().left - 1);
       var y = parseInt(event.pageY - $(this).position().top - 51);
 
-      //console.log(x + " " + y);
-
       if ((x < 0) || (y < 0)) {
-         //console.log(x + " " + y);
          return;
       }
-
-      // If scale is greater than 1, divide index
-      x = Math.floor(x / get_bitmap_scale());
-      y = Math.floor(y / get_bitmap_scale());
 
       // Origin x selected
       var classname = '';
@@ -327,38 +327,36 @@ $(document).ready(function() {
          classname = 'selected';
       }
 
+      // Adjust scale
+      var scale = get_bitmap_scale(classname);
+      x = Math.floor(x / parseInt(scale.split(" ")[0]));
+      y = Math.floor(y / parseInt(scale.split(" ")[1]));
+
       // Get IP at index
       var first_ip = '';
+      var first_time = '';
       if (classname === 'origin') {
          first_ip = $('.bitmap_stats td.range').html().split(" ")[0];
+         first_time = $('.bitmap_stats td.first_time').text();
       } else {
          first_ip= $('.selected_stats #selected_ip_range').html().split(" ")[0];
+         first_time = $('.selected_stats #selected_int_range_first').text();
       }
 
       var arguments = 'calculate_index=true' +
                       '&bitmap_type=' + classname +
                       '&first_ip=' + first_ip +
                       '&ip_index=' + y +
-                      '&interval=' + x;
+                      '&first_time=' + first_time +
+                      '&time_index=' + x;
 
       http_GET('', set_curr_position, arguments);
 
       // Update current position
       document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
                                         $('.bitmap_stats td.subnet_size').html();
-      if (classname === 'origin') {
-         if (x == parseInt($('.bitmap_stats td.int_range').html())) {
-            x--;
-         }
-         document.getElementById(classname + '_curr_interval').innerHTML = x;
-      } else {
-         // Move coordinates based on selected area
-         if (x == parseInt($('.selected_stats #selected_int_range').html().split(' ')[2])) {
-            x--;
-         }
-         document.getElementById(classname + '_curr_interval').innerHTML = x +
-                                       parseInt($('.selected_stats #selected_int_range').html().split(" ")[0]);
-      }
+      document.getElementById(classname + '_curr_interval').innerHTML = curr_interval;
+
       $('th.' + classname + '_curr_colour').css({
          'background': curr_colour,
          'color': ((curr_colour === 'black') ? 'white' : 'black')

@@ -104,8 +104,6 @@ class Visualisation_Handler:
       self.config_name = config_name
       self.bitmap_filename = bitmap_name
       self.directory = directory
-      self.sasa = 2
-      
 
       # Read configuration file
       try:
@@ -321,9 +319,9 @@ class Visualisation_Handler:
       # Get index
       return int(shifted_2) - int(shifted_1)
 
-   def get_time_from_interval(self, interval_index):
+   def get_time_from_index(self, first_time, index, granularity):
       ''' Returns time string at index '''
-      return self.time_first + datetime.timedelta(seconds=interval_index * self.time_granularity)
+      return first_time + datetime.timedelta(seconds=index * granularity)
          
    def get_index_from_times(self, time1, time2, granularity):
       ''' Returns seconds between time1 and time2 in granularity '''
