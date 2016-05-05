@@ -83,6 +83,7 @@ class Visualisation_Handler:
       self.time_granularity = 0
       self.time_first = None
       self.time_last = None
+      self.time_format = '%Y-%m-%d %H:%M:%S'
 
       # Selected area variables
       self.selected_first_ip = None
@@ -104,6 +105,7 @@ class Visualisation_Handler:
       self.bitmap_filename = bitmap_name
       self.directory = directory
       self.sasa = 2
+      
 
       # Read configuration file
       try:
@@ -131,7 +133,9 @@ class Visualisation_Handler:
       # Get time window and interval
       self.time_window = int(config_file[self.bitmap_filename]['time']['window'])
       self.time_granularity = int(config_file[self.bitmap_filename]['time']['granularity'])
-      self.time_first = datetime.datetime.strptime(config_file[self.bitmap_filename]['time']['first'], '%d-%m-%Y %H:%M:%S')
+      self.time_first = datetime.datetime.strptime(str(
+                        config_file[self.bitmap_filename]['time']['first']),
+                        self.time_format)
 
       # Check mode
       if (('end' in config_file[self.bitmap_filename]['module']) and
@@ -143,7 +147,9 @@ class Visualisation_Handler:
          if config_file[self.bitmap_filename]['time']['last'] == 'undefined':
             print('Last record time is undefined > less than one flow recorded.', file=sys.stderr)
             sys.exit(1)
-         self.time_last = datetime.datetime.strptime(config_file[self.bitmap_filename]['time']['last'], '%d-%m-%Y %H:%M:%S')
+         self.time_last = datetime.datetime.strptime(str(
+                          config_file[self.bitmap_filename]['time']['last']),
+                          self.time_format)
       elif (('end' in config_file[self.bitmap_filename]['module']) or
             ('intervals' in config_file[self.bitmap_filename]['time']) or 
             ('last' in config_file[self.bitmap_filename]['time'])):
@@ -154,29 +160,43 @@ class Visualisation_Handler:
          # Last time is current time
          self.mode = 'online'
          self.time_last = datetime.datetime.now()
-         self.intervals = int(math.floor((self.time_last - self.time_first).total_seconds()/self.time_granularity))
+         self.intervals = int(math.floor((self.time_last -
+                              self.time_first).total_seconds() /
+                              self.time_granularity))
 
          print(datetime.datetime.strftime(self.time_first, '%d-%m-%Y %H:%M:%S'))
          print(datetime.datetime.strftime(self.time_last, '%d-%m-%Y %H:%M:%S'))
          print("interval length", self.time_granularity)
          print("intervals", self.intervals)
-   
+
+      # If time first was earlier than a window ago, calculate a new
+      # first time for displayed data on client
+      if (self.time_last - self.time_first).total_seconds() > self.time_window:
+         self.time_first = self.time_last - datetime.timedelta(seconds=self.time_window)
+         print(str(self.time_first))
+         print(str(self.time_last))
+
       # Get IPs
       if sys.version_info[0] == 2:
-         self.first_ip = ipaddress.ip_address(unicode(config_file[self.bitmap_filename]['addresses']['first'],
-                                                     "utf-8"))
-         self.last_ip = ipaddress.ip_address(unicode(config_file[self.bitmap_filename]['addresses']['last'],
-                                                    "utf-8"))
+         self.first_ip = ipaddress.ip_address(unicode(
+                         config_file[self.bitmap_filename]['addresses']['first'],
+                         "utf-8"))
+         self.last_ip = ipaddress.ip_address(unicode(
+                        config_file[self.bitmap_filename]['addresses']['last'],
+                        "utf-8"))
    
       else:
-         self.first_ip = ipaddress.ip_address(config_file[self.bitmap_filename]['addresses']['first'])
+         self.first_ip = ipaddress.ip_address(
+                         config_file[self.bitmap_filename]['addresses']['first'])
    
-         self.last_ip = ipaddress.ip_address(config_file[self.bitmap_filename]['addresses']['last'])
+         self.last_ip = ipaddress.ip_address(
+                        config_file[self.bitmap_filename]['addresses']['last'])
    
       self.ip_granularity = int(config_file[self.bitmap_filename]['addresses']['granularity'])
       self.ip_size = self.first_ip.max_prefixlen
    
-      self.bit_vector_size  = self.get_index_from_ip(str(self.first_ip), str(self.last_ip), self.ip_granularity)
+      self.bit_vector_size  = self.get_index_from_ip(str(self.first_ip),
+                              str(self.last_ip), self.ip_granularity)
       self.byte_vector_size = int(math.ceil(self.bit_vector_size / 8))
 
    def binary_read(self, bitmap_name):
@@ -344,16 +364,20 @@ class Visualisation_Handler:
 
       # Save selected IP range
       if sys.version_info[0] == 2:
-         self.selected_first_ip = ipaddress.ip_address(unicode(query['first_ip'][0], "utf-8"))
-         self.selected_last_ip = ipaddress.ip_address(unicode(query['last_ip'][0], "utf-8"))
+         self.selected_first_ip = ipaddress.ip_address(
+                                  unicode(query['first_ip'][0], "utf-8"))
+         self.selected_last_ip = ipaddress.ip_address(
+                                 unicode(query['last_ip'][0], "utf-8"))
       else:
          self.selected_first_ip = ipaddress.ip_address(query['first_ip'][0])
          self.selected_last_ip = ipaddress.ip_address(query['last_ip'][0])
    
 
       # Adjust IP range (deleting rows)
-      ip1_index = self.get_index_from_ip(str(self.first_ip), query['first_ip'][0], self.ip_granularity)
-      ip2_index = self.get_index_from_ip(str(self.first_ip), query['last_ip'][0], self.ip_granularity)
+      ip1_index = self.get_index_from_ip(str(self.first_ip),
+                                         query['first_ip'][0], self.ip_granularity)
+      ip2_index = self.get_index_from_ip(str(self.first_ip),
+                                         query['last_ip'][0], self.ip_granularity)
       
       # Save IP range length
       self.selected_bit_vector_size = ip2_index - ip1_index

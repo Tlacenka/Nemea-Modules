@@ -47,7 +47,8 @@ from __future__ import print_function, division, with_statement
 import argparse
 import base64
 from bitarray import bitarray
-from bs4 import BeautifulSoup # https://www.crummy.com/software/BeautifulSoup/
+# https://www.crummy.com/software/BeautifulSoup/
+from bs4 import BeautifulSoup
 import cgi
 import copy
 import datetime
@@ -86,44 +87,46 @@ def create_handler(args, handler):
    class My_RequestHandler(BaseHTTPRequestHandler):
    
       arguments = args
-      visualisation_handler = handler
+      v_handler = handler # visualisation handler
    
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
 
          # Check if mode is online
-         if self.visualisation_handler.mode == 'online':
+         if self.v_handler.mode == 'online':
             # Check if config file has "end"
             try:
                with open(self.arguments['dir'] + '/' + self.arguments['config'], 'r+') as fd:
                   config_file = yaml.load(fd.read())
                   if config_file is None:
-                     print('Configuration file ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' failed.', file=sys.stderr)
+                     print('Configuration file ' + self.arguments['dir'] +
+                           '/' + self.arguments['config'] + ' failed.',
+                            file=sys.stderr)
                      sys.exit(1)
+
                   elif (('end' in config_file[self.arguments['filename']]['module']) and
                         ('intervals' in config_file[self.arguments['filename']]['time']) and
                         ('last' in config_file[self.arguments['filename']]['time'])):
                      # Change mode to offline
-                     self.visualisation_handler.mode = 'offline'
-                     self.visualisation_handler.intervals = config_file[self.arguments['filename']]['time']['intervals']
-                     self.visualisation_handler.time_last = config_file[self.arguments['filename']]['time']['last']
+                     self.v_handler.mode = 'offline'
+                     self.v_handler.intervals = config_file[self.arguments['filename']]['time']['intervals']
+                     self.v_handler.time_last = datetime.datetime.strptime(
+                                    str(config_file[self.arguments['filename']]['time']['last']),
+                                    self.v_handler.time_format)
                   else:
                      # Change time_last to current time
-                     self.visualisation_handler.time_last = datetime.datetime.now()
+                     self.v_handler.time_last = datetime.datetime.now()
                      
             except IOError:
-               print('File ' + self.arguments['dir'] + '/' + self.arguments['config'] + ' could not be opened.', file=sys.stderr)
+               print('File ' + self.arguments['dir'] + '/' +
+                     self.arguments['config'] + ' could not be opened.',
+                     file=sys.stderr)
                sys.exit(1)
             
    
-         if (self.path == '/') or (self.path == '/index.html') or (self.path == '/frontend.html'):
-   
-            # Load source bitmap
-            #self.visualisation_handler.original_bitmap = self.visualisation_handler.binary_read(self.arguments['filename'] + '_s.bmap')
-            #for b in range(self.visualisation_handler.bit_vector_size):
-            #   print(self.visualisation_handler.original_bitmap[b])
-            #self.visualisation_handler.create_image(self.visualisation_handler.original_bitmap, "image_s")
-   
+         if ((self.path == '/') or (self.path == '/index.html') or
+             (self.path == '/frontend.html')):
+
             # Open main HTML file
             try:
                with open('frontend.html', 'r') as fd:
@@ -135,19 +138,31 @@ def create_handler(args, handler):
                   html_file = BeautifulSoup(fd.read(), 'html.parser')
    
                   # Insert characteristics
-                  html_file.find('td', 'subnet_size').append("/" + str(self.visualisation_handler.ip_granularity))
-                  html_file.find('td', 'range').append(str(self.visualisation_handler.first_ip) + " - " + str(self.visualisation_handler.last_ip))
-                  html_file.find('td', 'first_time').append(datetime.datetime.strftime(self.visualisation_handler.time_first, '%d-%m-%Y %H:%M:%S'))
-                  html_file.find('td', 'last_time').append(datetime.datetime.strftime(self.visualisation_handler.time_last, '%d-%m-%Y %H:%M:%S'))
+                  html_file.find('td', 'subnet_size').append("/" +
+                            str(self.v_handler.ip_granularity))
+                  html_file.find('td', 'range').append(str(self.v_handler.first_ip) +
+                            " - " + str(self.v_handler.last_ip))
+                  html_file.find('td', 'total_intervals').append(str(self.v_handler.intervals))
+                  if self.v_handler.intervals > self.v_handler.time_window:
+                     html_file.find('td', 'intervals').append(str(self.v_handler.time_window))
+                  else:
+                     html_file.find('td', 'intervals').append(str(self.v_handler.intervals))
+                  html_file.find('td', 'first_time').append(datetime.datetime.strftime(
+                             self.v_handler.time_first, self.v_handler.time_format))
+                  html_file.find('td', 'last_time').append(datetime.datetime.strftime(
+                            self.v_handler.time_last, self.v_handler.time_format))
 
-                  html_file.find('td', 'time_interval').append(str(self.visualisation_handler.time_granularity) + " seconds")
-                  html_file.find('td', 'time_window').append(str(self.visualisation_handler.time_window) + " intervals")
-                  html_file.find('td', 'mode').append(self.visualisation_handler.mode)
+                  html_file.find('td', 'time_interval').append(
+                            str(self.v_handler.time_granularity) + " seconds")
+                  html_file.find('td', 'time_window').append(
+                            str(self.v_handler.time_window) + " intervals")
+                  html_file.find('td', 'mode').append(self.v_handler.mode)
 
                   self.wfile.write(html_file)
                   
             except IOError:
-               print('File ' + self.arguments['dir'] + self.path + ' could not be opened.', file=sys.stderr)
+               print('File ' + self.arguments['dir'] + self.path +
+                     ' could not be opened.', file=sys.stderr)
                self.send_response(404)
                sys.exit(1)
    
@@ -171,12 +186,13 @@ def create_handler(args, handler):
                if 'update' in query:
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
-                  self.visualisation_handler.original_bitmap = self.visualisation_handler.binary_read(
+                  self.v_handler.original_bitmap = self.v_handler.binary_read(
                                         self.arguments['dir'] + '/' +
                                         self.arguments['filename'] + '_' +
                                         bmap_type + '.bmap')
-                  if self.visualisation_handler.original_bitmap is not None:
-                     self.visualisation_handler.create_image(self.visualisation_handler.original_bitmap, 'image_' + bmap_type)
+                  if self.v_handler.original_bitmap is not None:
+                     self.v_handler.create_image(self.v_handler.original_bitmap,
+                                                 'image_' + bmap_type)
    
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
@@ -188,24 +204,32 @@ def create_handler(args, handler):
                   tmp_index = int(query['ip_index'][0])
                   bitmap_type = query['bitmap_type'][0]
 
-                  tmp_ip = self.visualisation_handler.get_ip_from_index(tmp_ip, tmp_index, visualisation_handler.ip_granularity)
+                  tmp_ip = self.v_handler.get_ip_from_index(tmp_ip,
+                           tmp_index, self.v_handler.ip_granularity)
    
                   # Get colour at coordinates
                   x = tmp_index
                   y = int(query['interval'][0])
-   
-                  tmp_bitmap = (self.visualisation_handler.original_bitmap if (bitmap_type == 'origin')
-                                else self.visualisation_handler.selected_bitmap)
+
+                  if (bitmap_type == 'origin'):
+                     tmp_bitmap = self.v_handler.original_bitmap
+                  else:
+                     tmp_bitmap = self.v_handler.selected_bitmap
 
                   # Decrease to avoid overflow
                   if x >= len(tmp_bitmap):
                      x = len(tmp_bitmap) - 1
                   if y >= len(tmp_bitmap[0]):
                      y = len(tmp_bitmap[0]) - 1
-                  colour = ("white" if ((tmp_bitmap is not None) and tmp_bitmap[x][y]) else "black")
+
+                  if (tmp_bitmap is not None) and tmp_bitmap[x][y]:
+                     colour = "white"
+                  else:
+                     colour = "black"
    
 
-                  tmp_time = self.visualisation_handler.get_time_from_interval(tmp_time)
+                  tmp_time = "sasa"
+                  #tmp_time = self.v_handler.get_time_from_interval(tmp_time)
 
                   # Send needed information
                   self.send_response(200)
@@ -222,11 +246,11 @@ def create_handler(args, handler):
                    ('first_int' in query) and ('last_int' in query)):
    
                   # Edit bitmap
-                  self.visualisation_handler.edit_bitmap(query)
-                  if self.visualisation_handler.selected_bitmap is not None:
-                     self.visualisation_handler.create_image(self.visualisation_handler.selected_bitmap, 'selected')
+                  self.v_handler.edit_bitmap(query)
+                  if self.v_handler.selected_bitmap is not None:
+                     self.v_handler.create_image(self.v_handler.selected_bitmap, 'selected')
                      # Set path to selected image
-                     self.path = '/images/selected.png' # TODO will it be changed?
+                     self.path = '/images/selected.png'
    
             print('PATH ' + self.path)
    
@@ -249,8 +273,8 @@ def create_handler(args, handler):
    
             # If bitmaps do not exist
             if ((query is not None) and
-                ((('update' in query) and (self.visualisation_handler.original_bitmap is None)) or
-                 (('selected_area' in query) and (self.visualisation_handler.selected_bitmap is None)))):
+                ((('update' in query) and (self.v_handler.original_bitmap is None)) or
+                 (('selected_area' in query) and (self.v_handler.selected_bitmap is None)))):
                self.send_response(200)
                self.send_header('Content-type', 'text/plain')
                self.send_header('Bitmap', 'none')
@@ -264,11 +288,15 @@ def create_handler(args, handler):
    
                      # Send updated interval range and mode
                      if (query is not None) and ('update' in query):
-                        self.send_header('Interval_range',
-                                        str(len(self.visualisation_handler.original_bitmap[0]) if (
-                                       (self.visualisation_handler.original_bitmap is not None) and (len(self.visualisation_handler.original_bitmap) > 0)) else 0))
-                        self.send_header('Mode', self.visualisation_handler.mode)
-                        print (self.visualisation_handler.mode)
+                        if ((self.v_handler.original_bitmap is not None) and
+                            (len(self.v_handler.original_bitmap) > 0)):
+                           self.send_header('Interval_range',
+                                            str(len(self.v_handler.original_bitmap[0])))
+                        else:
+                           self.send_header('Interval_range', "0")
+
+                        self.send_header('Mode', self.v_handler.mode)
+                        print (self.v_handler.mode)
    
                      # If image is sent via AJAX, encode to base64
                      if ((content_type == 'image/png') and (query is not None) and
@@ -281,7 +309,8 @@ def create_handler(args, handler):
                         self.wfile.write(fd.read())
    
                except IOError:
-                  print('File .' + self.path + ' could not be opened.', file=sys.stderr)
+                  print('File .' + self.path + ' could not be opened.',
+                        file=sys.stderr)
                   self.send_response(404)
                   sys.exit(1)
 
@@ -297,7 +326,8 @@ def main():
    parser.add_argument('-H', '--hostname', type=str, default='localhost',
                        help='Server hostname (localhost by default).')
    parser.add_argument('-d', '--dir', type=str, default='.',
-                       help='Path to directory with bitmaps and configuration file (current directory by default).')
+                       help='Path to directory with bitmaps and ' +
+                            'configuration file (current directory by default).')
    parser.add_argument('-c', '--config', type=str, default='config.yaml',
                        help='Path to configuration file (current directory by default).')
    parser.add_argument('-f', '--filename', type=str, default='bitmap',
@@ -313,16 +343,19 @@ def main():
       print('Directory for web client files does not exist.', file=sys.stderr)
       sys.exit(1)
 
-   if (arguments['port'] > 65535) or (arguments['port'] < 1): # Skip registered?
+   # Skip registered?
+   if (arguments['port'] > 65535) or (arguments['port'] < 1):
       print('Port not within allowed range.', file=sys.stderr)
       sys.exit(1)
 
    # Validate configuration file, create values
    visualisation_handler = activity_visualisation.Visualisation_Handler()
-   visualisation_handler.load_config(arguments['dir'], arguments['filename'], arguments['config'])
+   visualisation_handler.load_config(arguments['dir'], arguments['filename'],
+                                     arguments['config'])
 
    # Create handler
-   server = HTTPServer((arguments['hostname'], arguments['port']),create_handler(arguments, visualisation_handler))
+   server = HTTPServer((arguments['hostname'], arguments['port']),
+                       create_handler(arguments, visualisation_handler))
 
    # Set SIGTERM handler
    signal.signal(signal.SIGTERM, sigterm_handler)

@@ -43,10 +43,8 @@ $(document).ready(function() {
       ip_version = 6;
    }
 
-   var time_range_min_str = $('.bitmap_stats td.first_time').text();
-   var time_range_max_str = $('.bitmap_stats td.last_time').text();
-   var time_range_min = Date.parse($('.bitmap_stats td.first_time').text());
-   var time_range_max = Date.parse($('.bitmap_stats td.last_time').text());
+   var time_range_min = Date.parse($('.bitmap_stats td.first_time').text().replace(" ", "T"));
+   var time_range_max = Date.parse($('.bitmap_stats td.last_time').text().replace(" ", "T"));
 
    // Units of selected area
    var time_unit = 1;
@@ -60,8 +58,8 @@ $(document).ready(function() {
    // Initialize form values
    $('.bitmap_options input.first_ip').val($('.bitmap_stats td.range').html().split(" ")[0]);
    $('.bitmap_options input.last_ip').val($('.bitmap_stats td.range').html().split(" ")[2]);
-   $('.bitmap_options input.first_int').val($('.bitmap_stats td.first_time').text());
-   $('.bitmap_options input.last_int').val($('.bitmap_stats td.last_time').text());
+   $('.bitmap_options input.first_int').val($('.bitmap_stats td.first_time').text().replace("T", " "));
+   $('.bitmap_options input.last_int').val($('.bitmap_stats td.last_time').text().replace("T", " "));
 
    $('#selected').hide();
 
@@ -166,14 +164,19 @@ $(document).ready(function() {
       var type = get_bitmap_type(),
           first_ip = $('#bitmap_form input.first_ip').val(),
           last_ip = $('#bitmap_form input.last_ip').val(),
-          first_int = Date.parse($('#bitmap_form input.first_int').val()), 
-          last_int = Date.parse($('#bitmap_form input.last_int').val());
+          first_int = Date.parse($('#bitmap_form input.first_int').val().replace(" ", "T")), 
+          last_int = Date.parse($('#bitmap_form input.last_int').val().replace(" ", "T"));
+      console.log("first int: " + first_int);
 
       // Validate parameters
-      if (first_int.isNaN() || last_int.isNaN() ||
+      if (isNaN(first_int) || isNaN(first_int) ||
          (first_int < time_range_min) || (first_int > time_range_max) ||
          (last_int < time_range_min) || (last_int > time_range_max)) {
-         alert('Intervals must be between 0 and ' + int_range_max + '.');
+         console.log("Inserted: " + first_int + " " + last_int);
+         console.log("Allowed: " + time_range_min + " " + time_range_max);
+         
+         alert('Intervals must be between ' + time_range_min_str + ' and ' +
+               time_range_max_str + '.');
          return;
       }
       if (parseInt(first_int) == parseInt(last_int)) {
