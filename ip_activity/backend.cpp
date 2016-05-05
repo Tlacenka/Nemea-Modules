@@ -599,8 +599,10 @@ int main(int argc, char **argv)
    // Load end time and intervals to config file
    config_write(configname, std::vector<std::string>({filename,
                             "module", "end"}), get_formatted_time(std::time(NULL)));
+   std::ostringstream tmp;
+   tmp << intervals;
    config_write(configname, std::vector<std::string>({filename,
-                            "time", "intervals"}), std::to_string(intervals));
+                            "time", "intervals"}), tmp.str());
    config_write(configname, std::vector<std::string>({filename,
                             "time", "last"}), (first ? "undefined" : get_formatted_time(time_curr)));
 
