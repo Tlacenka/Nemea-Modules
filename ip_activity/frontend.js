@@ -168,21 +168,21 @@ $(document).ready(function() {
           last_int = Date.parse($('#bitmap_form input.last_int').val().replace(" ", "T"));
       console.log("first int: " + first_int);
 
-      // Validate parameters
+      // Validate time range
       if (isNaN(first_int) || isNaN(first_int) ||
          (first_int < time_range_min) || (first_int > time_range_max) ||
          (last_int < time_range_min) || (last_int > time_range_max)) {
-         console.log("Inserted: " + first_int + " " + last_int);
-         console.log("Allowed: " + time_range_min + " " + time_range_max);
-         
-         alert('Intervals must be between ' + time_range_min_str + ' and ' +
-               time_range_max_str + '.');
+         //console.log("Inserted: " + first_int + " " + last_int);
+         //console.log("Allowed: " + time_range_min + " " + time_range_max);
+         alert('Intervals must be between ' + $('#bitmap_form input.first_int').val().replace(" ", "T") +
+               ' and ' + $('#bitmap_form input.last_int').val().replace(" ", "T") + '.');
          return;
       }
       if (parseInt(first_int) == parseInt(last_int)) {
          alert('Size of interval range must be greater than 0.');
          return;
       }
+      // Validate IP range
       if (!compare_ips(first_ip, last_ip) ||
           !compare_ips($('.bitmap_stats td.range').html().split(" ")[0], first_ip) ||
           !compare_ips(last_ip, $('.bitmap_stats td.range').html().split(" ")[2])) {
@@ -200,8 +200,8 @@ $(document).ready(function() {
                       '&bitmap_type=' + type +
                       '&first_ip=' +  first_ip +
                       '&last_ip=' +  last_ip +
-                      '&first_int=' +  first_int +
-                      '&last_int=' + last_int;
+                      '&first_int=' +  $('#bitmap_form input.first_int').val() +
+                      '&last_int=' + $('#bitmap_form input.last_int').val();
 
       http_GET("", set_selected_area, arguments);
 
@@ -209,7 +209,8 @@ $(document).ready(function() {
       $('#selected').show();
       document.getElementById('selected_type').innerHTML = $('#bitmap_type li.chosen').html();
       document.getElementById('selected_ip_range').innerHTML = first_ip + ' - ' + last_ip;
-      document.getElementById('selected_int_range').innerHTML = first_int + ' - ' + last_int;
+      document.getElementById('selected_int_range_first').innerHTML = $('#bitmap_form input.first_int').val();
+      document.getElementById('selected_int_range_last').innerHTML = $('#bitmap_form input.last_int').val();
       document.getElementById('selected_time_unit').innerHTML = time_unit;
       document.getElementById('selected_ip_unit').innerHTML = ip_unit;
 
@@ -218,7 +219,7 @@ $(document).ready(function() {
       var curr_colour = 'black';
       document.getElementById('selected_curr_IP').innerHTML = curr_index +
                                                      $('.bitmap_stats td.subnet_size').html();
-      document.getElementById('selected_curr_interval').innerHTML = $('.selected_stats #selected_int_range').html().split(" ")[0];
+      document.getElementById('selected_curr_interval').innerHTML = $('.selected_stats #selected_int_range_first').text();
       $('th.selected_curr_colour').css({
          'background': 'black',
          'color': 'white'

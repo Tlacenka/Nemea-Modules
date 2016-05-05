@@ -299,7 +299,7 @@ bool config_write (std::string configname, std::vector<std::string> keys,
 std::string get_formatted_time(time_t raw_time) {
    struct tm* time_struct = localtime(&raw_time);
    char time_str[TIME_LEN];
-   std::strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_struct);
+   std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", time_struct);
    return time_str;
 }
 
