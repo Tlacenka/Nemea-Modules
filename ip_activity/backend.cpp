@@ -534,6 +534,7 @@ int main(int argc, char **argv)
       // Get TIME_FIRST of the first record for the configuration file
       if (first) {
          time_first = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
+         time_curr = time_first;
 
          // Load time to config file
          config_write(configname, std::vector<std::string>({filename,
@@ -600,6 +601,8 @@ int main(int argc, char **argv)
                             "module", "end"}), get_formatted_time(std::time(NULL)));
    config_write(configname, std::vector<std::string>({filename,
                             "time", "intervals"}), std::to_string(intervals));
+   config_write(configname, std::vector<std::string>({filename,
+                            "time", "last"}), (first ? "undefined" : get_formatted_time(time_curr)));
 
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
