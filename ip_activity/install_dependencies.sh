@@ -27,14 +27,16 @@ elif [ -f /etc/redhat-release ]; then
     sudo yum install libyaml.x86_64
 
     echo "Installing Python packages"
-    sudo yum -y install python-devel
+    sudo yum install python-setuptools
+    sudo easy_install pip
     sudo pip install beautifulsoup4
     sudo pip install bitarray
     sudo pip install ipaddress
     sudo pip install pyyaml
 
     echo "Installing Python 3 packages"
-    sudo apt-get install python3-pip
+    sudo yum install python34-setuptools
+    sudo easy_install pip
     sudo pip3 install beautifulsoup4
     sudo pip3 install bitarray
     sudo pip3 install ipaddress
