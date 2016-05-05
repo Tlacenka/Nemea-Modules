@@ -44,23 +44,22 @@
 
 from __future__ import print_function, division, with_statement
 
+import activity_visualisation
 import argparse
 import base64
-from bitarray import bitarray
 # https://www.crummy.com/software/BeautifulSoup/
 from bs4 import BeautifulSoup
+from bitarray import bitarray
 import cgi
 import copy
 import datetime
 import ipaddress
-import logging
 import math
 import os
 import signal
-import time
-import activity_visualisation
-import yaml # pyyaml
 import sys
+import time
+import yaml # pyyaml
 
 # Python 2.x BaseHTTPServer is in http.server in Python 3.x
 # Python 2.x PIL.Image is in Image in Python 3.x
