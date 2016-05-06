@@ -248,11 +248,19 @@ class Visualisation_Handler:
          for b in range(self.bit_vector_size):
             transp_bitmap[b].append(tmp_bitmap[r][b])
 
-      # TODO:Shift by number of intervals from the beginning if online mode
-      index = (datetime.datetime.now() - self.time_first).total_seconds()
-      print("seconds from the start:", index)
-      #for r in range(rows):
-      #   transp_bitmap[r] = 
+      # Shift by number of intervals from the beginning to get offset in
+      # circular buffer
+      if self.mode == 'offline':
+         index = self.intervals % self.time_window
+      else:
+         index = self.get_index_from_times(self.time_first,
+                                          datetime.datetime.now(),
+                                          self.time_granularity)
+
+      for r in range(rows):
+         transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
+
+      print("Data offset:", index)
 
       return transp_bitmap
 
@@ -324,7 +332,7 @@ class Visualisation_Handler:
       return first_time + datetime.timedelta(seconds=index * granularity)
          
    def get_index_from_times(self, time1, time2, granularity):
-      ''' Returns seconds between time1 and time2 in granularity '''
+      ''' Returns intervals between time1 and time2 '''
       return int(math.floor((time2 - time1).total_seconds() / granularity))
 
 
