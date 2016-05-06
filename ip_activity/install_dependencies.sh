@@ -11,6 +11,7 @@ if [ -f /etc/debian_version ]; then
    sudo pip install bitarray
    sudo pip install ipaddress
    sudo pip install pyyaml
+   sudo pip install Pillow
 
    echo "Installing Python 3 packages"
    sudo apt-get install python3-pip
@@ -18,6 +19,7 @@ if [ -f /etc/debian_version ]; then
    sudo pip3 install bitarray
    sudo pip3 install ipaddress
    sudo pip3 install pyyaml
+   sudo pip3 install Pillow
 
 
 elif [ -f /etc/redhat-release ]; then
@@ -33,6 +35,7 @@ elif [ -f /etc/redhat-release ]; then
     sudo pip install bitarray
     sudo pip install ipaddress
     sudo pip install pyyaml
+   sudo pip install Pillow
 
     echo "Installing Python 3 packages"
     sudo yum install python34-setuptools
@@ -41,6 +44,7 @@ elif [ -f /etc/redhat-release ]; then
     sudo pip3 install bitarray
     sudo pip3 install ipaddress
     sudo pip3 install pyyaml
+    sudo pip3 install Pillow
     
     
 
