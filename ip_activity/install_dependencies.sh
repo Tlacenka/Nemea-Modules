@@ -26,7 +26,7 @@ elif [ -f /etc/redhat-release ]; then
     echo "Installing dependencies for RPM based system"
 
     echo "Installing yaml_cpp"
-    sudo yum install libyaml.x86_64
+    sudo yum install libyaml-cpp-devel
 
     echo "Installing Python packages"
     sudo yum install python-setuptools
