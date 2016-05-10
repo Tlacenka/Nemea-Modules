@@ -462,6 +462,9 @@ int main(int argc, char **argv)
    if (config_file[filename]["time"]["intervals"]) {
       config_file[filename]["time"].remove("intervals");
    }
+   if (config_file[filename]["time"]["last"]) {
+      config_file[filename]["time"].remove("last");
+   }
 
    // Set bitmap options for server
    config_file[filename]["addresses"]["granularity"] = granularity;
