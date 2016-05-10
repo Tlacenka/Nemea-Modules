@@ -165,12 +165,6 @@ def create_handler(args, handler):
                self.send_response(404)
                sys.exit(1)
    
-         # Get rid of favicon requests
-         elif self.path == '/favicon.ico':
-            self.send_response(200)
-            self.send_header('Content-type', 'image/x-icon')
-            self.end_headers()
-   
          else:
             print('GET ' + self.path)
    
@@ -277,6 +271,8 @@ def create_handler(args, handler):
                content_type = 'application/javascript'
             elif self.path.endswith(".css"):
                content_type = 'text/css'
+            elif self.path.endswith("favicon.ico"):
+               content_type = 'image/x-icon'
             else:
                print("Path " + self.path + " was not recognized.", file=sys.stderr)
                self.send_response(404)

@@ -250,12 +250,12 @@ class Visualisation_Handler:
 
       # Shift by number of intervals from the beginning to get offset in
       # circular buffer
-      if self.mode == 'offline':
-         index = self.intervals % self.time_window
-      else:
-         index = self.get_index_from_times(self.time_first,
-                                          datetime.datetime.now(),
+      if self.mode == 'online':
+         self.time_last = datetime.datetime.now()
+         self.intervals = self.get_index_from_times(self.time_first,
+                                          self.time_last,
                                           self.time_granularity)
+      index = self.intervals % self.time_window
 
       for r in range(rows):
          transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
