@@ -456,11 +456,17 @@ int main(int argc, char **argv)
    if (config_file[filename]["addresses"]["last"]) {
       config_file[filename]["addresses"].remove("last");
    }
+   if (config_file[filename]["module"]["start"]) {
+      config_file[filename]["module"].remove("start");
+   }
    if (config_file[filename]["module"]["end"]) {
       config_file[filename]["module"].remove("end");
    }
    if (config_file[filename]["time"]["intervals"]) {
       config_file[filename]["time"].remove("intervals");
+   }
+   if (config_file[filename]["time"]["first"]) {
+      config_file[filename]["time"].remove("first");
    }
    if (config_file[filename]["time"]["last"]) {
       config_file[filename]["time"].remove("last");
