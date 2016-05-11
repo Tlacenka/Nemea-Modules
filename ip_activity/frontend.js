@@ -282,16 +282,27 @@ $(document).ready(function() {
          // Update characteristics
 
          // Number of visible and total intervals
-         if (parseInt($('.intervals').text()) <=
+         if (parseInt($('#visible_int').text()) <
             parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
-            document.getElementById("visible_int").innerHTML = http_request.getResponseHeader('Interval_range');
+            if (parseInt(http_request.getResponseHeader('Interval_range')) <= 
+                parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
+               document.getElementById("visible_int").innerHTML = http_request.getResponseHeader('Interval_range');
+            } else {
+               document.getElementById("visible_int").innerHTML = parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]);
+            }
+            
             document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
+            //console.log($('#visible_int').text());
+            //console.log($('.bitmap_stats td.time_window').html().split(" ")[0]);
          } else {
              document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
          }
 
          // In online mode, update first and last time
          if ($('.bitmap_stats td.mode').html() == 'online') {
+            time_range_min = Date.parse(http_request.getResponseHeader('Time_first').replace(" ", "T"));
+            time_range_max = Date.parse(http_request.getResponseHeader('Time_last').replace(" ", "T"));
+
             document.getElementById('stat_first_time').innerHTML = http_request.getResponseHeader('Time_first');
             document.getElementById('stat_last_time').innerHTML = http_request.getResponseHeader('Time_last');
 

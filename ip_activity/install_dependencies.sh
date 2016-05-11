@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ -f /etc/debian_version ]; then
    echo "Installing dependencies for debian based system"
 
