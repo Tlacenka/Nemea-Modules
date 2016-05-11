@@ -1,5 +1,5 @@
 /**
- * \file backend.cpp
+ * \file ip_activity.cpp
  * \brief Module for storing IP activity
  * \author Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
  * \date 2016
@@ -54,7 +54,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <typeinfo>
 
 #include <bitset>
 #include <ctime>
@@ -62,15 +61,15 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <utility> 
 
 #include "yaml-cpp/yaml.h"
 
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
-#include <nemea-common.h>
 #include <unirec/ipaddr_cpp.h>
+
 #include "fields.h"
+#include "ip_activity.hpp"
 
 UR_FIELDS (
    ipaddr DST_IP,
@@ -80,25 +79,6 @@ UR_FIELDS (
 
 
 trap_module_info_t *module_info = NULL;
-
-#define FIRST_ADDR 0
-#define LAST_ADDR 1
-
-#define IPV4 0
-#define IPv6 1
-
-#define IPV4_BITS 32
-#define IPV6_BITS 128
-
-#define SRC 0
-#define DST 1
-#define SRC_DST 2
-
-#define MAX_WINDOW 1000
-#define MAX_INTERVAL 86400
-#define MAX_VECTOR_SIZE 1000
-
-#define TIME_LEN 20
 
 /* Example: ./ip_activity -i "t:12345" ..... */
 
@@ -119,11 +99,7 @@ static int stop = 0;
 // Function to handle SIGTERM and SIGINT signals (used to stop the module)
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
 
-/**
- * \brief Converts address based on chosen granularity (shifts to right)
- * \param [in] addr IP address to be checked.
- * \return True upon success.
- */
+/* IP conversion based on granularity */
 void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
 
    int version = addr->get_version();
@@ -152,13 +128,7 @@ void convert_to_granularity (IPaddr_cpp *addr, int granularity) {
    return;
 }
 
-/**
- * \brief Return size of address space between two addresses in set granularity
- * \param [in] addr1, addr2 start and end of considered range
- * \param [in] granularity  granularity of addresses inside said range.
- * \return addr2/granularity - addr1/granularity
- */
- 
+/* Substracting addr2 - addr1 */
 uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
 {
    // Check IP validity, same version
@@ -210,13 +180,7 @@ uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2)
    }
 }
 
-/**
- * \brief Write bit vector to file.
- * \param [out] bitmap Target file.
- * \param [in]  bits   Bit vector to be stored;
- * \param [in]  index  Offset of row in bitmap (unit is vector_size);
- * \param [in]  mode   Open mode.
- */
+/* Storing bytes to file */
 /*http://stackoverflow.com/questions/29623605/how-to-dump-stdvectorbool-in-a-binary-file*/
 void binary_write(std::string filename, std::vector<bool> bits,
                   std::ios_base::openmode mode, uint32_t index)
@@ -251,13 +215,8 @@ void binary_write(std::string filename, std::vector<bool> bits,
    bitmap.close();
    return;
 }
-/**
- * \brief Writes value to configuration file.
- * \param [in] configname Name of the configuration file.
- * \param [in] keys       Access path in configuration file structure.
- * \param [in] value      Value to be inserted.
- * \return If the operation is successful, returns true.
- */
+
+/* Writing information to configuration file */
 bool config_write (std::string configname, std::vector<std::string> keys,
                    std::string value)
 {
@@ -288,17 +247,14 @@ bool config_write (std::string configname, std::vector<std::string> keys,
    return true;
 }
 
-/**
- * Formats raw time as string - %d-%m-%Y %H:%M:%S
- * @param [in] raw_time Time as raw seconds.
- * @return Time as a formatted string.
- */
+/* Formats time to string - %d-%m-%Y %H:%M:%S */
 std::string get_formatted_time(time_t raw_time) {
    struct tm* time_struct = localtime(&raw_time);
    char time_str[TIME_LEN];
    std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", time_struct);
    return time_str;
 }
+
 
 /** Main function */
 int main(int argc, char **argv)

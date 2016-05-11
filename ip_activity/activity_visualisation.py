@@ -225,7 +225,7 @@ class Visualisation_Handler:
 
       # Update values
       if (self.mode == 'online') or changed:
-         self.intervals = config_file[self.arguments['filename']]['time']['intervals']
+         self.intervals = config_file[self.bitmap_filename]['time']['intervals']
          self.time_first = datetime.datetime.strptime(str(
                               config_file[self.bitmap_filename]['time']['first']),
                               self.time_format)
@@ -234,6 +234,7 @@ class Visualisation_Handler:
                                 config_file[self.bitmap_filename]['time']['last']),
                                 self.time_format)
          else:
+            length = (self.time_window if (self.intervals >= self.time_window) else self.intervals)
             self.time_last = self.time_first + datetime.timedelta(seconds=length * self.time_granularity)
 
       return True
