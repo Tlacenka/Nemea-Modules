@@ -295,7 +295,7 @@ class Visualisation_Handler:
       if self.intervals >= self.time_window:
          index = (self.intervals + 1) % self.time_window
          for r in range(rows):
-            transp_bitmap[r] = transp_bitmap[r][index+1:] + transp_bitmap[r][0:index+1]
+            transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
 
          print("Data offset:", index)
 
