@@ -297,7 +297,7 @@ class Visualisation_Handler:
          for r in range(rows):
             transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
 
-      print("Data offset:", index)
+         print("Data offset:", index)
 
       return transp_bitmap
 
