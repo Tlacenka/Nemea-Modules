@@ -109,16 +109,12 @@ trap_module_info_t *module_info = NULL;
    PARAM('c', "config", "Name + path to configuration file. (./config.yaml by default)", required_argument, "string") \
    PARAM('f', "filename", "Name of bitmap files. (bitmap by default)", required_argument, "string") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
-   PARAM('p', "print", "Show progress - print a dot every interval.", no_argument, "none") \
    PARAM('r', "range", "Range of processed IP addresses that must correspond format (First address,Last address).", required_argument, "string") \
    PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [sec]", required_argument, "uint32") \
    PARAM('w', "time_window", "Time window for storing data to bitmap (default 100 intervals). [intervals]", required_argument, "uint32")
    
 
 static int stop = 0;
-
-// Declaration of structure prototype for printing progress
-NMCM_PROGRESS_DECL;
 
 // Function to handle SIGTERM and SIGINT signals (used to stop the module)
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1);
@@ -324,12 +320,8 @@ int main(int argc, char **argv)
       return -1;
    }
 
-   // Declare progress structure
-   NMCM_PROGRESS_DEF;
-
    // Initialization of default values
-   int interval = 300, window = 100;
-   bool print_progress = false;
+   int time_interval = 300, time_window = 100;
    int granularity = 8;
    int ip_version = 4; // by default, primarily to be deduced from input IPs
    IPaddr_cpp range[2];
@@ -352,9 +344,6 @@ int main(int argc, char **argv)
             break;
           case 'g':
             granularity = atoi(optarg);
-            break;
-         case 'p':
-            print_progress = true;
             break;
          case 'r':
             tmp_range.assign(optarg);
@@ -381,16 +370,16 @@ int main(int argc, char **argv)
             break;
 
          case 't':
-            interval = atoi(optarg);
-            if ((interval < 0) || (interval > MAX_INTERVAL)) {
-               fprintf(stderr, "Error: Time interval - invalid value %d.\n", interval);
+            time_interval = atoi(optarg);
+            if ((time_interval < 0) || (time_interval > MAX_INTERVAL)) {
+               fprintf(stderr, "Error: Time interval - invalid value %d.\n", time_interval);
                return 1;
             }
             break;
          case 'w':
-            window = atoi(optarg);
-            if ((window < 0) || (window > MAX_WINDOW)) {
-               fprintf(stderr, "Error: Time window - invalid value %d.\n", window);
+            time_window = atoi(optarg);
+            if ((time_window < 0) || (time_window > MAX_WINDOW)) {
+               fprintf(stderr, "Error: Time window - invalid value %d.\n", time_window);
                return 1;
             }
             break;
@@ -398,11 +387,6 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error: Unknown parameter -%c.\n", opt);
             return 1;
       }
-   }
-
-   // Set printing progress
-   if (print_progress) {
-      NMCM_PROGRESS_INIT(interval, return 1);
    }
 
    // If no range entered, used the entire range of IPv4 at /8 by default
@@ -478,8 +462,9 @@ int main(int argc, char **argv)
    config_file[filename]["addresses"]["first"] = range[FIRST_ADDR].toString();
    config_file[filename]["addresses"]["last"] = range[LAST_ADDR].toString();
 
-   config_file[filename]["time"]["granularity"] = interval;
-   config_file[filename]["time"]["window"] = window;
+   config_file[filename]["time"]["granularity"] = time_interval;
+   config_file[filename]["time"]["window"] = time_window;
+   config_file[filename]["time"]["intervals"] = 0;
    config_file[filename]["module"]["start"] = get_formatted_time(std::time(NULL));
 
    // Save changes to config file
@@ -517,7 +502,7 @@ int main(int argc, char **argv)
       return 1;
    }
 
-   std::cout << vector_size << std::endl;
+   std::cout << "vector size: " << vector_size << std::endl;
 
    // Create bit vectors and basis for open modes.
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
@@ -529,6 +514,7 @@ int main(int argc, char **argv)
    int intervals = 0; // it is a number of intervals
    bool first = true; // for setting start time in configuration file
    time_t time_first, time_curr;
+   std::ostringstream intervals_str;
 
    /** Main loop */
    while (!stop) {
@@ -550,20 +536,34 @@ int main(int argc, char **argv)
          config_write(configname, std::vector<std::string>({filename,
                                   "time", "first"}), get_formatted_time(time_first));
          first = false;
-      } else {
-         // Check if the record is still in the interval
+      } else {         
          time_curr = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
 
-         // If not, save vectors
-         if ((time_first + (intervals * interval)) < time_curr) {
+         // Check if the record is still in the interval
+         // If an interval is skipped, fill the rest with 0s
+         while ((time_first + (intervals * time_interval)) < time_curr) {
             for (int i = 0; i < 3; i++) {
-               binary_write(filename + suffix[i], bits[i], mode, intervals % window);
+               binary_write(filename + suffix[i], bits[i], mode, intervals % time_window);
                // Clear vector values
                bits[i].assign(bits[i].size(), 0);
             }
-   
+
+            // Update configuration file
+            if (rewrite) {
+               config_write(configname, std::vector<std::string>({filename,
+                           "time", "first"}),
+                           get_formatted_time(time_first + ((intervals - time_window) * time_interval)));
+            } else{
+            }
+
+            intervals_str.str("");
+            intervals_str.clear();
+            intervals_str << intervals;
+            config_write(configname, std::vector<std::string>({filename,
+                           "time", "intervals"}), intervals_str.str());
+
             // When the buffer is full, turn off appending
-            if (!rewrite && ((intervals + 1) == window)) {
+            if (!rewrite && ((intervals + 1) == time_window)) {
                rewrite = true;
                mode = mode & (~(std::ios_base::app));
             }
@@ -603,16 +603,24 @@ int main(int argc, char **argv)
 
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
-      binary_write(filename + suffix[i], bits[i], mode, intervals % window);
+      binary_write(filename + suffix[i], bits[i], mode, intervals % time_window);
+   }
+
+   if (rewrite) {
+      config_write(configname, std::vector<std::string>({filename,
+                  "time", "first"}),
+                  get_formatted_time(time_first + ((intervals - time_window) * time_interval)));
    }
 
    // Load end time and intervals to config file
    config_write(configname, std::vector<std::string>({filename,
                             "module", "end"}), get_formatted_time(std::time(NULL)));
-   std::ostringstream tmp;
-   tmp << intervals;
+   intervals_str.str("");
+   intervals_str.clear();
+   intervals_str << intervals;
+
    config_write(configname, std::vector<std::string>({filename,
-                            "time", "intervals"}), tmp.str());
+                            "time", "intervals"}), intervals_str.str());
    config_write(configname, std::vector<std::string>({filename,
                             "time", "last"}), (first ? "undefined" : get_formatted_time(time_curr)));
 
