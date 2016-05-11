@@ -8,6 +8,8 @@
 // Main function
 $(document).ready(function() {
 
+   var update_interval = 30000; // 30 seconds by default
+
    // Start updating bitmap if online mode
    var timeout_handler = null;
    var mode = '';
@@ -27,10 +29,10 @@ $(document).ready(function() {
 
    // IP index and colour initialisation
    // Original bitmap
-   var curr_index = $('.bitmap_stats td.range').html().split(" ")[0];
+   var curr_IP = $('.bitmap_stats td.range').html().split(" ")[0];
    var curr_colour = 'black';
    var curr_interval = $('.bitmap_stats td.first_time').text();
-   document.getElementById('origin_curr_IP').innerHTML = curr_index +
+   document.getElementById('origin_curr_IP').innerHTML = curr_IP +
                                                   $('.bitmap_stats td.subnet_size').html();
    document.getElementById('origin_curr_interval').innerHTML = curr_interval;
    $('th.origin_curr_colour').css({
@@ -38,18 +40,14 @@ $(document).ready(function() {
       'color': 'white'
    });
 
-   var down_ip = curr_index;
+   var down_ip = curr_IP;
    var down_int = curr_interval;
 
-   // Initialise limits for input
+   // Initialise IP version
    var ip_version = 4;
    if ($('.bitmap_stats td.range').html().split(" ")[0].indexOf(":") != -1) {
       ip_version = 6;
    }
-
-   
-
-   // Units of selected area
 
    // Mouse position for drag event
    var mouse_X = -1;
@@ -90,8 +88,8 @@ $(document).ready(function() {
    // Call update every interval
    function auto_update() {
       update_bitmap();
-      var interval = parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0])*1000;
-      timeout_handler = setTimeout(auto_update, interval);
+      //var interval = parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0])*1000;
+      timeout_handler = setTimeout(auto_update, update_interval);
    }
 
    // Update bitmap by sending GET request
@@ -123,8 +121,8 @@ $(document).ready(function() {
    // Returns scale for both dimensions "<scale for x> <scale for y>"
    function get_bitmap_scale(type) {
       if (type === 'origin') {
-         var scale = $('#bitmap_size li.chosen').html().split(":")[0] +
-               " " + $('#bitmap_size li.chosen').html().split(":")[0];
+         var scale = $('#bitmap_size li.chosen').html().split(":")[0];
+         scale = scale + " " + scale;
       } else {
          var scale = $('#selected_time_unit').text() + " " +
                      $('#selected_ip_unit').text();
@@ -220,9 +218,9 @@ $(document).ready(function() {
       document.getElementById('selected_int_range_last').innerHTML = $('#bitmap_form input.last_int').val();
 
       // Set current position
-      var curr_index = $('.selected_stats #selected_ip_range').html().split(" ")[0];
+      var curr_IP = $('.selected_stats #selected_ip_range').html().split(" ")[0];
       var curr_colour = 'black';
-      document.getElementById('selected_curr_IP').innerHTML = curr_index +
+      document.getElementById('selected_curr_IP').innerHTML = curr_IP +
                                                      $('.bitmap_stats td.subnet_size').html();
       document.getElementById('selected_curr_interval').innerHTML = $('.selected_stats #selected_int_range_first').text();
       $('th.selected_curr_colour').css({
@@ -257,6 +255,7 @@ $(document).ready(function() {
             'margin-top': '50px'
          });
 
+         // Set scale ratio
          document.getElementById('selected_time_unit').innerHTML = http_request.getResponseHeader('Time_unit');
          document.getElementById('selected_ip_unit').innerHTML = http_request.getResponseHeader('IP_unit');
 
@@ -280,27 +279,32 @@ $(document).ready(function() {
             'margin-top': '50px'
          });
 
-         // Change interval characteristics if range < time window
-         if (parseInt($('#int_range').html().split(" ")[0]) <
+         // Update characteristics
+         if (parseInt($('.intervals').text()) <
             parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
-            document.getElementById("int_range").innerHTML = http_request.getResponseHeader('Interval_range') + " intervals";
+            document.getElementById("int_range").innerHTML = http_request.getResponseHeader('Interval_range');
          }
-         // Change online -> offline only
-         if (($('.bitmap_stats td.mode').html() == 'online') &&
-             (http_request.getResponseHeader('Mode') == 'offline')) {
-            document.getElementById("mode").innerHTML = http_request.getResponseHeader('Mode');
-            mode = 'offline';
-            console.log("change to offline");
-            // Cancel periodic update
-            clearTimeout(timeout_handler);
-            
+
+         // In online mode, update first and last time
+         if ($('.bitmap_stats td.mode').html() == 'online') {
+            document.getElementById('stat_first_time').innerHTML = http_request.getResponseHeader('Time_first');
+            document.getElementById('stat_last_time').innerHTML = http_request.getResponseHeader('Time_last');
+
+            // Online > offline
+            if (http_request.getResponseHeader('Mode') == 'offline') {
+               document.getElementById("mode").innerHTML = http_request.getResponseHeader('Mode');
+               mode = 'offline';
+               console.log("change to offline");
+               // Cancel periodic update
+               clearTimeout(timeout_handler);
+            }
          }
       }
    }
 
    // Set IP index and cell colour
    function set_curr_position(http_request) {
-      curr_index = http_request.getResponseHeader('IP_index');
+      curr_IP = http_request.getResponseHeader('IP_index');
       curr_colour = http_request.getResponseHeader('Cell_colour');
       curr_interval = http_request.getResponseHeader('Time_index');
    }
@@ -312,6 +316,7 @@ $(document).ready(function() {
    $(document).on('mousemove', 'img.hover_coords', function(event) {
 
       // Displaying coordinates
+      // TODO: why is IP one to the left??
       var x = parseInt(event.pageX - $(this).position().left - 1);
       var y = parseInt(event.pageY - $(this).position().top - 51);
 
@@ -353,7 +358,7 @@ $(document).ready(function() {
       http_GET('', set_curr_position, arguments);
 
       // Update current position
-      document.getElementById(classname + '_curr_IP').innerHTML = curr_index +
+      document.getElementById(classname + '_curr_IP').innerHTML = curr_IP +
                                         $('.bitmap_stats td.subnet_size').html();
       document.getElementById(classname + '_curr_interval').innerHTML = curr_interval;
 
@@ -395,7 +400,7 @@ $(document).ready(function() {
       }).show();
 
       // Save values
-      down_ip = curr_index;
+      down_ip = curr_IP;
       down_int = curr_interval;
    });
 
@@ -459,7 +464,7 @@ $(document).ready(function() {
       if (mouse_down) {
          // Insert rectangle values to Options
          var ip1 = down_ip;
-         var ip2 = curr_index;         
+         var ip2 = curr_IP;         
 
          // Is ip1 < ip2 ?
          if (compare_ips(ip1, ip2)) {

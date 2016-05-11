@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+
 <!--
  - Subject: IP Activity Analysis
  - Brief: HTML for web client main page visualising data to user.
@@ -7,7 +9,6 @@
 
 <!-- https://code.jquery.com/jquery-1.12.0.min.js -->
 
-<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -17,6 +18,7 @@
 	<meta name="keywords" content="IP activity,data visualisation,networking,nemea">
 	<meta name="description" content="IP activity visualisation software.">
 	<link rel="stylesheet" type="text/css" href="frontend.css">
+   <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
    <script type='text/javascript' src='jquery-1.9.1.min.js'></script>
    <script src="frontend.js"></script>
 </head>
@@ -73,9 +75,9 @@
                   </tr>
                   <tr class="range">
                      <th rowspan="2" id="int_range"> Time Range </th>
-                     <td class="first_time"></td>
+                     <td class="first_time" id="stat_first_time"></td>
                   <tr class="range">
-                     <td class="last_time"></td>
+                     <td class="last_time" id="stat_last_time"></td>
                   </tr>
                   <tr class="total_intervals">
                      <th> Intervals in Total </th>
