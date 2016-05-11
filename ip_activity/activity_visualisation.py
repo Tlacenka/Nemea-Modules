@@ -292,9 +292,8 @@ class Visualisation_Handler:
 
       # Shift by number of intervals from the beginning to get offset in
       # circular buffer
-      index = self.intervals % self.time_window
-
       if self.intervals >= self.time_window:
+         index = self.intervals % self.time_window
          for r in range(rows):
             transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
 
