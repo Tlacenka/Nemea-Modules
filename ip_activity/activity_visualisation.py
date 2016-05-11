@@ -294,8 +294,9 @@ class Visualisation_Handler:
       # circular buffer
       index = self.intervals % self.time_window
 
-      for r in range(rows):
-         transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
+      if self.intervals >= self.time_window:
+         for r in range(rows):
+            transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
 
       print("Data offset:", index)
 
