@@ -292,11 +292,6 @@ class Visualisation_Handler:
 
       # Shift by number of intervals from the beginning to get offset in
       # circular buffer
-      if self.mode == 'online':
-         self.time_last = datetime.datetime.now()
-         self.intervals = self.get_index_from_times(self.time_first,
-                                          self.time_last,
-                                          self.time_granularity)
       index = self.intervals % self.time_window
 
       for r in range(rows):

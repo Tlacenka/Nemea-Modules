@@ -275,7 +275,7 @@ def create_handler(args, handler):
                         # Send updated values
                         if 'online' in self.v_handler.mode: 
                            self.send_header('Interval_range',
-                                            str(len(self.v_handler.original_bitmap[0])))
+                                            str(self.v_handler.intervals))
                            self.send_header('Time_first', datetime.datetime.strftime(
                                             self.v_handler.time_first,
                                             self.v_handler.time_format))

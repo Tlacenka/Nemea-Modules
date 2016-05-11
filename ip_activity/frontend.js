@@ -280,9 +280,14 @@ $(document).ready(function() {
          });
 
          // Update characteristics
-         if (parseInt($('.intervals').text()) <
+
+         // Number of visible and total intervals
+         if (parseInt($('.intervals').text()) <=
             parseInt($('.bitmap_stats td.time_window').html().split(" ")[0])) {
-            document.getElementById("int_range").innerHTML = http_request.getResponseHeader('Interval_range');
+            document.getElementById("visible_int").innerHTML = http_request.getResponseHeader('Interval_range');
+            document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
+         } else {
+             document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
          }
 
          // In online mode, update first and last time
