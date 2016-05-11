@@ -106,26 +106,9 @@ class Visualisation_Handler:
       self.directory = directory
 
       # Read configuration file
-      try:
-         with open(self.directory + '/' + self.config_name, 'r') as fd:
-            config_file = yaml.load(fd.read())
-      except IOError:
-         print('File ' + self.directory + '/' + self.config_name +
-               ' could not be opened.', file=sys.stderr)
-         sys.exit(1)
-   
-      # Check if node with filename exists:
-      if self.bitmap_filename not in config_file:
-         print('Bitmap files not found.', file=sys.stderr)
-         sys.exit(1) 
-   
-      # Check if node contains required keys
-      if (not(set(['time', 'addresses','module'])<= set(config_file[self.bitmap_filename].keys())) or
-         not(set(['first', 'last', 'granularity']) <= set(config_file[self.bitmap_filename]['addresses'].keys())) or
-         not(set(['granularity', 'first', 'window']) <= set(config_file[self.bitmap_filename]['time'].keys())) or
-         not('start' in config_file[self.bitmap_filename]['module'])):
+      config_file = self.validate_config(self.directory, self.config_name, 'online')
 
-         print('Configuration file structure is invalid.', file=sys.stderr)
+      if config_file is None:
          sys.exit(1)
 
       # Get time window and interval
@@ -134,14 +117,13 @@ class Visualisation_Handler:
       self.time_first = datetime.datetime.strptime(str(
                         config_file[self.bitmap_filename]['time']['first']),
                         self.time_format)
+      self.intervals = int(config_file[self.bitmap_filename]['time']['intervals'])
+
 
       # Check mode
       if (('end' in config_file[self.bitmap_filename]['module']) and
-          ('intervals' in config_file[self.bitmap_filename]['time']) and
           ('last' in config_file[self.bitmap_filename]['time'])):
-         # In offline mode, last interval ends at [time][last]
          self.mode = 'offline'
-         self.intervals = int(config_file[self.bitmap_filename]['time']['intervals'])
          if config_file[self.bitmap_filename]['time']['last'] == 'undefined':
             print('Last record time is undefined > less than one flow recorded.', file=sys.stderr)
             sys.exit(1)
@@ -149,7 +131,6 @@ class Visualisation_Handler:
                           config_file[self.bitmap_filename]['time']['last']),
                           self.time_format)
       elif (('end' in config_file[self.bitmap_filename]['module']) or
-            ('intervals' in config_file[self.bitmap_filename]['time']) or 
             ('last' in config_file[self.bitmap_filename]['time'])):
          print('Configuration file structure is invalid.', file=sys.stderr)
          sys.exit(1)
@@ -157,22 +138,13 @@ class Visualisation_Handler:
          # Calculate intervals from elapsed time and interval length
          # Last time is current time
          self.mode = 'online'
-         self.time_last = datetime.datetime.now()
-         self.intervals = self.get_index_from_times(self.time_first,
-                                                    self.time_last,
-                                                    self.time_granularity)
+         length = (self.time_window if (self.intervals >= self.time_window) else self.intervals)
+         self.time_last = self.time_first + datetime.timedelta(seconds=length * self.time_granularity)
 
          #print(datetime.datetime.strftime(self.time_first, '%d-%m-%Y %H:%M:%S'))
          #print(datetime.datetime.strftime(self.time_last, '%d-%m-%Y %H:%M:%S'))
          #print("interval length", self.time_granularity)
          #print("intervals", self.intervals)
-
-      # If time first was earlier than a window ago, calculate a new
-      # first time for displayed data on client
-      if (self.time_last - self.time_first).total_seconds() > self.time_window:
-         self.time_first = self.time_last - datetime.timedelta(seconds=self.time_window * self.time_granularity)
-         print(str(self.time_first))
-         print(str(self.time_last))
 
       # Get IPs
       if sys.version_info[0] == 2:
@@ -196,6 +168,75 @@ class Visualisation_Handler:
       self.bit_vector_size  = self.get_index_from_ip(str(self.first_ip),
                               str(self.last_ip), self.ip_granularity)
       self.byte_vector_size = int(math.ceil(self.bit_vector_size / 8))
+      print('time first: ' + str(self.time_first))
+      print('time last: ' + str(self.time_last))
+      return
+
+   def validate_config(self, directory, config_name, mode):
+      ''' Validates configuration structure '''
+
+      # Read configuration file
+      try:
+         with open(directory + '/' + config_name, 'r') as fd:
+            config_file = yaml.load(fd.read())
+      except IOError:
+         print('File ' + directory + '/' + config_name +
+               ' could not be opened.', file=sys.stderr)
+         return None
+   
+      # Check if node with filename exists:
+      if self.bitmap_filename not in config_file:
+         print('Bitmap files not found.', file=sys.stderr)
+         return None
+   
+      # Check if node contains required keys
+      if (not(set(['time', 'addresses','module'])<= set(config_file[self.bitmap_filename].keys())) or
+         not(set(['first', 'last', 'granularity']) <= set(config_file[self.bitmap_filename]['addresses'].keys())) or
+         not(set(['granularity', 'first', 'window', 'intervals']) <= set(config_file[self.bitmap_filename]['time'].keys())) or
+         not('start' in config_file[self.bitmap_filename]['module'])):
+
+         print('Configuration file structure is invalid.', file=sys.stderr)
+         return None
+
+      if mode == 'offline':
+         if (not('end' in config_file[self.bitmap_filename]['module']) or
+             not('last' in config_file[self.bitmap_filename]['time'])):
+            return None
+
+      return config_file
+
+   def update_config(self):
+      ''' Updates configuration - mainly focuses on:
+             offline/online mode, time first/last'''
+      changed = False
+
+      # Check online -> offline
+      if self.mode == 'online':
+         config_file = self.validate_config(self.directory, self.config_name, 'offline')
+         if config_file is not None:
+            changed = True
+            self.mode = 'online offline'
+
+      # Check current mode validity
+      if not changed:
+         config_file = self.validate_config(self.directory, self.config_name, self.mode)
+         if config_file is None:
+            return False
+
+      # Update values
+      if (self.mode == 'online') or changed:
+         self.intervals = config_file[self.arguments['filename']]['time']['intervals']
+         self.time_first = datetime.datetime.strptime(str(
+                              config_file[self.bitmap_filename]['time']['first']),
+                              self.time_format)
+         if changed:
+            self.time_last = datetime.datetime.strptime(str(
+                                config_file[self.bitmap_filename]['time']['last']),
+                                self.time_format)
+         else:
+            self.time_last = self.time_first + datetime.timedelta(seconds=length * self.time_granularity)
+
+      return True
 
    def binary_read(self, bitmap_name):
       ''' Returns 2D bitarray of updated, transposed bitmap '''

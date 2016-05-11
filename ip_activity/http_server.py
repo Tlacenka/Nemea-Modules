@@ -91,38 +91,7 @@ def create_handler(args, handler):
       def do_GET(self):
          ''' Handle a HTTP GET request. '''
 
-         # Check if mode is online
-         if self.v_handler.mode == 'online':
-            # Check if config file has "end"
-            try:
-               with open(self.arguments['dir'] + '/' + self.arguments['config'], 'r+') as fd:
-                  config_file = yaml.load(fd.read())
-                  if config_file is None:
-                     print('Configuration file ' + self.arguments['dir'] +
-                           '/' + self.arguments['config'] + ' failed.',
-                            file=sys.stderr)
-                     sys.exit(1)
-
-                  elif (('end' in config_file[self.arguments['filename']]['module']) and
-                        ('intervals' in config_file[self.arguments['filename']]['time']) and
-                        ('last' in config_file[self.arguments['filename']]['time'])):
-                     # Change mode to offline
-                     self.v_handler.mode = 'offline'
-                     self.v_handler.intervals = config_file[self.arguments['filename']]['time']['intervals']
-                     self.v_handler.time_last = datetime.datetime.strptime(
-                                    str(config_file[self.arguments['filename']]['time']['last']),
-                                    self.v_handler.time_format)
-                  else:
-                     # Change time_last to current time
-                     self.v_handler.time_last = datetime.datetime.now()
-                     
-            except IOError:
-               print('File ' + self.arguments['dir'] + '/' +
-                     self.arguments['config'] + ' could not be opened.',
-                     file=sys.stderr)
-               sys.exit(1)
-            
-   
+         # React to a received request
          if ((self.path == '/') or (self.path == '/index.html') or
              (self.path == '/frontend.html')):
 
@@ -177,6 +146,12 @@ def create_handler(args, handler):
    
                # If bitmap update required, update
                if ('update' in query) and ('scale' in query):
+
+                  # Update statistics based on configuration file
+                  if (not self.v_handler.update_config()):
+                     print("Configuration file is invalid/could not be validated",
+                           file=sys.stderr)
+
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
                   self.v_handler.original_bitmap = self.v_handler.binary_read(
@@ -280,8 +255,10 @@ def create_handler(args, handler):
    
             # If bitmaps do not exist
             if ((query is not None) and
-                ((('update' in query) and (self.v_handler.original_bitmap is None)) or
-                 (('selected_area' in query) and (self.v_handler.selected_bitmap is None)))):
+                ((('update' in query) and ((self.v_handler.original_bitmap is None) or
+                                           (len(self.v_handler.original_bitmap) == 0))) or
+                 (('selected_area' in query) and ((self.v_handler.selected_bitmap is None) or
+                                                  (len(self.v_handler.selected_bitmap) == 0))))):
                self.send_response(200)
                self.send_header('Content-type', 'text/plain')
                self.send_header('Bitmap', 'none')
@@ -295,13 +272,20 @@ def create_handler(args, handler):
    
                      # Send updated interval range and mode
                      if (query is not None) and ('update' in query):
-                        if ((self.v_handler.original_bitmap is not None) and
-                            (len(self.v_handler.original_bitmap) > 0)):
+                        # Send updated values
+                        if 'online' in self.v_handler.mode: 
                            self.send_header('Interval_range',
                                             str(len(self.v_handler.original_bitmap[0])))
-                        else:
-                           self.send_header('Interval_range', "0")
+                           self.send_header('Time_first', datetime.datetime.strftime(
+                                            self.v_handler.time_first,
+                                            self.v_handler.time_format))
+                           self.send_header('Time_last', datetime.datetime.strftime(
+                                            self.v_handler.time_last,
+                                            self.v_handler.time_format))
 
+                        # Update mode
+                        if self.v_handler.mode == 'online offline':
+                           self.v_handler.mode = 'offline'
                         self.send_header('Mode', self.v_handler.mode)
                         print (self.v_handler.mode)
 
