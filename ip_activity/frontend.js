@@ -60,6 +60,7 @@ $(document).ready(function() {
    $('.bitmap_options input.first_int').val($('.bitmap_stats td.first_time').text());
    $('.bitmap_options input.last_int').val($('.bitmap_stats td.last_time').text());
 
+   // Hide selected area
    $('#selected').hide();
 
    // When changing bitmap type, get new bitmap, update CSS
@@ -88,7 +89,6 @@ $(document).ready(function() {
    // Call update every interval
    function auto_update() {
       update_bitmap();
-      //var interval = parseInt($('.bitmap_stats td.time_interval').html().split(" ")[0])*1000;
       timeout_handler = setTimeout(auto_update, update_interval);
    }
 
@@ -160,7 +160,7 @@ $(document).ready(function() {
    }
 
 
-   // Handle form submit TODO
+   // Validate and submit form
    $('.submit').click(function(event) {
       event.preventDefault();
 
@@ -231,6 +231,7 @@ $(document).ready(function() {
    
    });
 
+   // Sets up selected area, inserts image
    function set_selected_area(http_request) {
 
       if (http_request.getResponseHeader('Bitmap') === 'ok') {
@@ -297,7 +298,7 @@ $(document).ready(function() {
          } else {
              document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
          }
-
+         // TODO fix total int not showing up
          // In online mode, update first and last time
          if ($('.bitmap_stats td.mode').html() == 'online') {
             time_range_min = Date.parse(http_request.getResponseHeader('Time_first').replace(" ", "T"));
@@ -374,13 +375,17 @@ $(document).ready(function() {
       http_GET('', set_curr_position, arguments);
 
       // Update current position
-      document.getElementById(classname + '_curr_IP').innerHTML = curr_IP +
-                                        $('.bitmap_stats td.subnet_size').html();
+      if (curr_IP === 'undefined') {
+          document.getElementById(classname + '_curr_IP').innerHTML = curr_IP;
+      } else {
+         document.getElementById(classname + '_curr_IP').innerHTML = curr_IP +
+                                     $('.bitmap_stats td.subnet_size').html();
+      }
       document.getElementById(classname + '_curr_interval').innerHTML = curr_interval;
 
       $('th.' + classname + '_curr_colour').css({
-         'background': curr_colour,
-         'color': ((curr_colour === 'black') ? 'white' : 'black')
+         'background': ((curr_colour === 'gray') ? 'DimGray' : curr_colour),
+         'color': ((curr_colour === 'black') || (curr_colour === 'gray') ? 'white' : 'black')
       });
 
       // Dragging
@@ -481,6 +486,7 @@ $(document).ready(function() {
          // Insert rectangle values to Options
          var ip1 = down_ip;
          var ip2 = curr_IP;         
+         // TODO: handle undefined
 
          // Is ip1 < ip2 ?
          if (compare_ips(ip1, ip2)) {

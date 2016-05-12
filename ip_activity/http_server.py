@@ -110,6 +110,7 @@ def create_handler(args, handler):
                             str(self.v_handler.ip_granularity))
                   html_file.find('td', 'range').append(str(self.v_handler.first_ip) +
                             " - " + str(self.v_handler.last_ip))
+                  print(self.v_handler.intervals)
                   html_file.find('td', 'total_intervals').append(str(self.v_handler.intervals))
                   if self.v_handler.intervals > self.v_handler.time_window:
                      html_file.find('td', 'intervals').append(str(self.v_handler.time_window))
@@ -126,7 +127,10 @@ def create_handler(args, handler):
                             str(self.v_handler.time_window) + " intervals")
                   html_file.find('td', 'mode').append(self.v_handler.mode)
 
-                  self.wfile.write(html_file)
+                  if sys.version_info[0] == 2:
+                     self.wfile.write(html_file)
+                  else:
+                    self.wfile.write(bytes(str(html_file), 'UTF-8'))
                   
             except IOError:
                print('File ' + self.arguments['dir'] + self.path +
@@ -162,7 +166,9 @@ def create_handler(args, handler):
                      self.v_handler.create_image(self.v_handler.original_bitmap,
                                                  'image_' + bmap_type,
                                                  int(query['scale'][0]),
-                                                 int(query['scale'][0]))
+                                                 int(query['scale'][0]),
+                                                 self.v_handler.bit_vector_size,
+                                                 self.v_handler.time_window, False)
    
                # If IP index is required
                if (('calculate_index' in query) and ('bitmap_type' in query) and
@@ -188,26 +194,29 @@ def create_handler(args, handler):
 
                   
                   if (tmp_bitmap is not None) and (len(tmp_bitmap) > 0):
-                     # Decrease to avoid overflow
-                     if x >= len(tmp_bitmap):
-                        x = len(tmp_bitmap) - 1
-                     if y >= len(tmp_bitmap[0]):
-                        y = len(tmp_bitmap[0]) - 1
-   
-                     # Get IP, time and colour
-                     tmp_ip = self.v_handler.get_ip_from_index(tmp_ip,
-                              x, self.v_handler.ip_granularity)
-                     tmp_time = self.v_handler.get_time_from_index(tmp_time,
-                              y, self.v_handler.time_granularity)
-                     colour = "white" if tmp_bitmap[x][y] else "black"
+                     # If it is out of boundaries, return undefined
+                     if (x >= len(tmp_bitmap)) or (y >= len(tmp_bitmap[0])):
+                        tmp_ip = 'undefined'
+                        tmp_time = 'undefined'
+                        colour = 'gray'
+                     else:
+                        # Get IP, time and colour
+                        tmp_ip = self.v_handler.get_ip_from_index(tmp_ip,
+                                 x, self.v_handler.ip_granularity)
+                        tmp_time = self.v_handler.get_time_from_index(tmp_time,
+                                 y, self.v_handler.time_granularity)
+                        colour = "white" if tmp_bitmap[x][y] else "black"
 
                   # Send needed information
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
                   self.send_header('IP_index', tmp_ip)
                   self.send_header('Cell_colour', colour)
-                  self.send_header('Time_index', datetime.datetime.strftime(tmp_time,
-                                                 self.v_handler.time_format))
+                  if tmp_time == 'undefined':
+                     self.send_header('Time_index', tmp_time)
+                  else:
+                     self.send_header('Time_index', datetime.datetime.strftime(tmp_time,
+                                                    self.v_handler.time_format))
                   self.end_headers()
                   return
    
@@ -228,7 +237,9 @@ def create_handler(args, handler):
                      scaleCol = int(math.floor(len(self.v_handler.original_bitmap[0]) /
                                            len(self.v_handler.selected_bitmap[0])))
                      self.v_handler.create_image(self.v_handler.selected_bitmap,
-                                                'selected', scaleRow, scaleCol)
+                                                'selected', scaleRow, scaleCol, 
+                                                 self.v_handler.bit_vector_size,
+                                                 self.v_handler.time_window, True)
                      # Set path to selected image
                      self.path = '/images/selected.png'
    
@@ -302,7 +313,10 @@ def create_handler(args, handler):
                         self.wfile.write(base64.b64encode(fd.read()))
                      else:
                         self.end_headers()
-                        self.wfile.write(fd.read())
+                        if sys.version_info[0] == 2:
+                           self.wfile.write(fd.read())
+                        else:
+                           self.wfile.write(bytes(str(fd.read()), 'UTF-8'))
    
                except IOError:
                   print('File .' + self.path + ' could not be opened.',

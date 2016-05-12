@@ -70,12 +70,15 @@ class Visualisation_Handler:
       self.original_bitmap = None
       self.selected_bitmap = None
       self.mode = ''
+      self.undefined = 105 # colour for undefined areas (0x69)
 
       # IP variables
       self.first_ip = None
       self.last_ip = None
       self.ip_size = 0
       self.ip_granularity = 0
+      self.bit_vector_size = 0
+      self.byte_vector_size = 0
 
       # Time variables
       self.time_window = 0
@@ -372,31 +375,82 @@ class Visualisation_Handler:
       ''' Returns intervals between time1 and time2 '''
       return int(math.floor((time2 - time1).total_seconds() / granularity))
 
+   def fill_bitmap(self, bitmap, length):
+      ''' Adds rows so that the result bitmap has a defined length '''
 
-   def create_image(self, bitmap, filename, scaleR, scaleC):
+   def create_image(self, bitmap, filename, scaleR, scaleC, height, width, selected):
       ''' Create black and white image from bitmap
-          Scales bitmap - scaleR:1 for rows, scaleC:1 for columns'''
+          Scales bitmap - scaleR:1 for rows, scaleC:1 for columns
+          Fills bitmap with gray until it is width x height '''
       # http://stackoverflow.com/questions/5672756/binary-list-to-png-in-python
+
+      print ("height: " + str(height),"width: " + str(width))
+
+      bitmap_height = len(list(bitmap))
+      if bitmap_height == 0:
+         return
+
+      bitmap_width = len(bitmap[0])
+      if bitmap_width == 0:
+         return
+
+      
 
       # Size of the image:
       # height = address space, width = intervals in bitmap
-      height = len(list(bitmap))
-      width = len(bitmap[0])
+      if selected:
+         fill_height = height - scaleR*bitmap_height
+         fill_width = width - scaleC*bitmap_width
+      else:
+         fill_height = (height - bitmap_height) if (height > bitmap_height) else 0
+         fill_width = (width - bitmap_width) if (width > bitmap_width) else 0
+
+      print("width: bitmap-" + str(bitmap_width) + " scale-" + str(scaleC) + " fill-" + str(fill_width))
+      print("height: bitmap-" + str(bitmap_height) + " scale-" + str(scaleR) + " fill-" + str(fill_height))
+
       print ('Creating image', str(height) + 'x' + str(width),
              'rows: ' + str(scaleR) + ':1', 'cols: ' + str(scaleC) + ':1')
 
-      # Save bitmap to buffer
+      # Save bitmap to buffer as integers
       img_buffer = []
-      for r in reversed(range(height)):
+
+      for r in range(bitmap_height):
          for rs in range(scaleR):
-            for c in range(width):
+            # Add data
+            for c in range(bitmap_width):
                for cs in range(scaleC):
-                  img_buffer.append(bitmap[r][c])
-         #print(bitmap[r])
+                  img_buffer.append(255 if bitmap[r][c] else 0)
+
+            # Add padding
+            for cfill in range(fill_width):
+               # Same here - scaling applies only to original bitmap
+               if not selected:
+                  for cs in range(scaleC):
+                     img_buffer.append(self.undefined)
+               else:
+                  img_buffer.append(self.undefined)
+
+      # For original bitmap, add scaled rows
+      if not selected:
+         for rfill in range(fill_height):
+            for rs in range(scaleR):
+               # Fill the whole line with padding
+               for c in range(width):
+                     for cs in range(scaleC):
+                        img_buffer.append(self.undefined)
+
+      else:
+         # For selected bitmap, scaling is already considered
+         for rfill in range(fill_height):
+            for c in range(width):
+               img_buffer.append(self.undefined)
 
       # Create and save image
-      img_data = struct.pack('B'*len(img_buffer), *[p*255 for p in img_buffer])
-      image = Image.frombuffer('L', (width * scaleC, height * scaleR), img_data)
+      img_data = struct.pack('B'*len(img_buffer), *img_buffer)
+      if selected:
+         image = Image.frombuffer('L', (width, height), img_data, 'raw', ('L', 0, 1))
+      else:
+         image = Image.frombuffer('L', (width * scaleC, height * scaleR), img_data, 'raw', ('L', 0, 1))
       image.save(self.directory + '/images/' + filename + '.png')
 
 
