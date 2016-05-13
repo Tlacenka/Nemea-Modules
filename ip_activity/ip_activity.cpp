@@ -469,7 +469,7 @@ int main(int argc, char **argv)
 
    int intervals = 0; // it is a number of intervals
    bool first = true; // for setting start time in configuration file
-   time_t time_first, time_curr;
+   time_t time_first = std::time(NULL), time_curr = std::time(NULL);
    std::ostringstream intervals_str;
 
    /** Main loop */
@@ -495,9 +495,14 @@ int main(int argc, char **argv)
       } else {         
          time_curr = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
 
+         // Check if the record is older > it is skipped
+         if (time_curr < time_first + (intervals * time_interval)) {
+            continue;
+         }
+
          // Check if the record is still in the interval
          // If an interval is skipped, fill the rest with 0s
-         while ((time_first + (intervals * time_interval)) < time_curr) {
+         while ((time_first + ((intervals+1) * time_interval)) < time_curr) {
             for (int i = 0; i < 3; i++) {
                binary_write(filename + suffix[i], bits[i], mode, intervals % time_window);
                // Clear vector values
@@ -509,7 +514,6 @@ int main(int argc, char **argv)
                config_write(configname, std::vector<std::string>({filename,
                            "time", "first"}),
                            get_formatted_time(time_first + ((intervals - time_window) * time_interval)));
-            } else{
             }
 
             intervals_str.str("");
