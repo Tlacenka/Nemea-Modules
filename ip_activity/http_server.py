@@ -110,7 +110,6 @@ def create_handler(args, handler):
                             str(self.v_handler.ip_granularity))
                   html_file.find('td', 'range').append(str(self.v_handler.first_ip) +
                             " - " + str(self.v_handler.last_ip))
-                  print(self.v_handler.intervals)
                   html_file.find('td', 'total_intervals').append(str(self.v_handler.intervals))
                   if self.v_handler.intervals > self.v_handler.time_window:
                      html_file.find('td', 'intervals').append(str(self.v_handler.time_window))
@@ -285,14 +284,14 @@ def create_handler(args, handler):
                      if (query is not None) and ('update' in query):
                         # Send updated values
                         if 'online' in self.v_handler.mode: 
-                           self.send_header('Interval_range',
-                                            str(self.v_handler.intervals))
                            self.send_header('Time_first', datetime.datetime.strftime(
                                             self.v_handler.time_first,
                                             self.v_handler.time_format))
                            self.send_header('Time_last', datetime.datetime.strftime(
                                             self.v_handler.time_last,
                                             self.v_handler.time_format))
+                        self.send_header('Interval_range',
+                                            str(self.v_handler.intervals))
 
                         # Update mode
                         if self.v_handler.mode == 'online offline':

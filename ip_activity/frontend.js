@@ -291,13 +291,13 @@ $(document).ready(function() {
             } else {
                document.getElementById("visible_int").innerHTML = parseInt($('.bitmap_stats td.time_window').html().split(" ")[0]);
             }
-            
-            document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
+
             //console.log($('#visible_int').text());
             //console.log($('.bitmap_stats td.time_window').html().split(" ")[0]);
-         } else {
-             document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
          }
+
+         document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
+
          // TODO fix total int not showing up
          // In online mode, update first and last time
          if ($('.bitmap_stats td.mode').html() == 'online') {
