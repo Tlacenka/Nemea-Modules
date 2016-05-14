@@ -50,6 +50,8 @@ bool test6()
                "time", "granularity"}), "200");
    config_write(CONFIGNAME, std::vector<std::string>({"test6",
                "time", "first"}), "2016-05-01 1:01:20");
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "time", "window"}), "1234");
 
    config_write(CONFIGNAME, std::vector<std::string>({"test6",
                "addresses", "first"}), "18.0.0.0");
@@ -85,6 +87,8 @@ bool test5()
                "time", "granularity"}), "250");
    config_write(CONFIGNAME, std::vector<std::string>({"test5",
                "time", "first"}), "2016-05-01 21:33:20");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "time", "window"}), "200");
 
    config_write(CONFIGNAME, std::vector<std::string>({"test5",
                "addresses", "first"}), "8.0.0.0");
@@ -126,6 +130,8 @@ bool test4()
                "time", "first"}), "2016-01-05 11:42:20");
    config_write(CONFIGNAME, std::vector<std::string>({"test4",
                "time", "last"}), get_formatted_time(std::time(NULL)));
+   config_write(CONFIGNAME, std::vector<std::string>({"test4",
+               "time", "window"}), "1000");
 
    config_write(CONFIGNAME, std::vector<std::string>({"test4",
                "addresses", "first"}), "123.0.0.0");
