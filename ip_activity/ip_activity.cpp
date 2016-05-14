@@ -86,7 +86,8 @@ trap_module_info_t *module_info = NULL;
    BASIC("IP Activity module", "This module scans incoming flows and stores info about IP activity in a given range of IP.", 1,0)
 
 #define MODULE_PARAMS(PARAM) \
-   PARAM('c', "config", "Name + path to configuration file. (./config.yaml by default)", required_argument, "string") \
+   PARAM('c', "config", "Name of the configuration file. (config by default)", required_argument, "string") \
+   PARAM('d', "directory", "Directory for storing bitmaps and configuration file. (. by default)", required_argument, "string") \
    PARAM('f', "filename", "Name of bitmap files. (bitmap by default)", required_argument, "string") \
    PARAM('g', "granularity", "Granularity in range of IP addresses (netmask).", required_argument, "uint32") \
    PARAM('r', "range", "Range of processed IP addresses that must correspond format (First address,Last address).", required_argument, "string") \
@@ -215,7 +216,7 @@ int main(int argc, char **argv)
    int ip_version = 4; // by default, primarily to be deduced from input IPs
    IPaddr_cpp range[2];
    bool rflag = false;
-   std::string filename = "bitmap", configname = "config.yaml";
+   std::string filename = "bitmap", configname = "config", directory = ".";
 
    /** Parse Arguments */
    char opt;
@@ -227,6 +228,9 @@ int main(int argc, char **argv)
       switch (opt) {
           case 'c':
             configname.assign(optarg);
+            break;
+          case 'd':
+            directory.assign(optarg);
             break;
           case 'f':
             filename.assign(optarg);
@@ -312,7 +316,7 @@ int main(int argc, char **argv)
 
    /** Create/open YAML configuration file  and bitmaps */
    std::fstream config;
-   if (std::ifstream(configname).good()) {
+   if (std::ifstream(directory + "/" + configname + ".yaml").good()) {
       config.open(configname, std::ios_base::out | std::ios_base::in);
    } else {
       config.open(configname, std::ios_base::out | std::ios_base::trunc);
@@ -325,7 +329,7 @@ int main(int argc, char **argv)
    config.close();
 
    // Load file to YAML parser
-   YAML::Node config_file = YAML::LoadFile(configname);
+   YAML::Node config_file = YAML::LoadFile(directory + "/" + configname + ".yaml");
 
    // Remove first and last if they exist (when rewriting, ! <!> appeared)
    if (config_file[filename]["addresses"]["first"]) {
@@ -362,7 +366,7 @@ int main(int argc, char **argv)
    config_file[filename]["module"]["start"] = get_formatted_time(std::time(NULL));
 
    // Save changes to config file
-   std::ofstream config_out(configname);
+   std::ofstream config_out(directory + "/" + configname + ".yaml");
    config_out << config_file;
    config_out.close();
 
@@ -427,8 +431,10 @@ int main(int argc, char **argv)
          time_curr = time_first;
 
          // Load time to config file
-         config_write(configname, std::vector<std::string>({filename,
-                                  "time", "first"}), get_formatted_time(time_first));
+         config_write(directory + "/" + configname + ".yaml",
+                                  std::vector<std::string>({filename,
+                                  "time", "first"}),
+                                  get_formatted_time(time_first));
          first = false;
       } else {         
          time_curr = ur_time_get_sec(ur_get(tmplt, rec, F_TIME_FIRST));
@@ -442,22 +448,25 @@ int main(int argc, char **argv)
          // If an interval is skipped, fill the rest with 0s
          while ((time_first + ((intervals+1) * time_interval)) < time_curr) {
             for (int i = 0; i < 3; i++) {
-               binary_write(filename + suffix[i], bits[i], mode, intervals % time_window);
+               binary_write(directory + "/" + filename + suffix[i],
+                            bits[i], mode, intervals % time_window);
                // Clear vector values
                bits[i].assign(bits[i].size(), 0);
             }
 
             // Update configuration file
             if (rewrite) {
-               config_write(configname, std::vector<std::string>({filename,
-                           "time", "first"}),
-                           get_formatted_time(time_first + ((intervals - time_window) * time_interval)));
+               config_write(directory + "/" + configname + ".yaml",
+                            std::vector<std::string>({filename, "time", "first"}),
+                            get_formatted_time(time_first + ((intervals -
+                                               time_window) * time_interval)));
             }
 
             intervals_str.str("");
             intervals_str.clear();
             intervals_str << (intervals + 1);
-            config_write(configname, std::vector<std::string>({filename,
+            config_write(directory + "/" + configname + ".yaml",
+                         std::vector<std::string>({filename,
                            "time", "intervals"}), intervals_str.str());
 
             // When the buffer is full, turn off appending
@@ -501,26 +510,32 @@ int main(int argc, char **argv)
 
    // Store the rest of data to bitmaps
    for (int i = 0; i < 3; i++) {
-      binary_write(filename + suffix[i], bits[i], mode, intervals % time_window);
+      binary_write(directory + "/" + filename + suffix[i], bits[i], mode,
+                   intervals % time_window);
    }
 
    if (rewrite) {
-      config_write(configname, std::vector<std::string>({filename,
-                  "time", "first"}),
-                  get_formatted_time(time_first + ((intervals - time_window) * time_interval)));
+      config_write(directory + "/" + configname + ".yaml",
+                   std::vector<std::string>({filename, "time", "first"}),
+                  get_formatted_time(time_first + ((intervals - time_window) *
+                                     time_interval)));
    }
 
    // Load end time and intervals to config file
-   config_write(configname, std::vector<std::string>({filename,
-                            "module", "end"}), get_formatted_time(std::time(NULL)));
+   config_write(directory + "/" + configname + ".yaml",
+                            std::vector<std::string>({filename,
+                            "module", "end"}),
+                            get_formatted_time(std::time(NULL)));
    intervals_str.str("");
    intervals_str.clear();
    intervals_str << (intervals + 1);
 
-   config_write(configname, std::vector<std::string>({filename,
-                            "time", "intervals"}), intervals_str.str());
-   config_write(configname, std::vector<std::string>({filename,
-                            "time", "last"}), (first ? "undefined" : get_formatted_time(time_curr)));
+   config_write(directory + "/" + configname + ".yaml",
+                std::vector<std::string>({filename, "time", "intervals"}),
+                intervals_str.str());
+   config_write(directory + "/" + configname + ".yaml",
+                std::vector<std::string>({filename, "time", "last"}),
+               (first ? "undefined" : get_formatted_time(time_curr)));
 
    /* Cleanup */
    TRAP_DEFAULT_FINALIZATION();
