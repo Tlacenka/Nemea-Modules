@@ -314,7 +314,7 @@ int main(int argc, char **argv)
       return 1;
    }
 
-   /** Create/open YAML configuration file  and bitmaps */
+   /* Create/open YAML configuration file  and bitmaps */
    std::fstream config;
    if (std::ifstream(directory + "/" + configname + ".yaml").good()) {
       config.open(configname, std::ios_base::out | std::ios_base::in);
@@ -323,13 +323,17 @@ int main(int argc, char **argv)
    }
 
    if (!config.is_open()) {
-      fprintf(stderr, "Error: File could not be opened/created.\n");
+      fprintf(stderr, "Error: Configuration file could not be opened/created.\n");
       return 1;
    }
    config.close();
 
    // Load file to YAML parser
    YAML::Node config_file = YAML::LoadFile(directory + "/" + configname + ".yaml");
+
+   if (config_file == NULL) {
+      fprintf(stderr, "Error: Configuration file could not be loaded by YAML.\n");
+   }
 
    // Remove first and last if they exist (when rewriting, ! <!> appeared)
    if (config_file[filename]["addresses"]["first"]) {
