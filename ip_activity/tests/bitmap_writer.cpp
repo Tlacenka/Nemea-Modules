@@ -22,23 +22,24 @@
 #include "yaml-cpp/yaml.h"
 #include "../ip_activity.hpp"
 
-void test3()
+/* Writes 10 rows of 16x"1" */
+void test1 ()
 {
    // Truncate existing file
    std::fstream file;
-   file.open("test3.bmap", std::ios_base::out | std::ios_base::trunc);
+   file.open("test1.bmap", std::ios_base::out | std::ios_base::trunc);
 
    std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
                                   std::ios_base::in;
    // Create vector
-   std::vector<bool> bits(9);
-   for (int i = 0; i < 9; i++) {
+   std::vector<bool> bits(16);
+   for (int i = 0; i < 16; i++) {
       bits[i] = 1;
    }
-   
+
    // Write to file
-   for (int i = 0; i < 5; i++) {
-      binary_write("test3.bmap", bits, mode, i);
+   for (int i = 0; i < 10; i++) {
+      binary_write("test1.bmap", bits, mode, i);
    }
    return;
 }
@@ -65,24 +66,68 @@ void test2()
    return;
 }
 
-/* Writes 10 rows of 16x"1" */
-void test1 ()
+/* Write 5 rows of 9x"1" + 7x"0" */
+void test3()
 {
    // Truncate existing file
    std::fstream file;
-   file.open("test1.bmap", std::ios_base::out | std::ios_base::trunc);
+   file.open("test3.bmap", std::ios_base::out | std::ios_base::trunc);
+
+   std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
+                                  std::ios_base::in;
+   // Create vector
+   std::vector<bool> bits(9);
+   for (int i = 0; i < 9; i++) {
+      bits[i] = 1;
+   }
+   
+   // Write to file
+   for (int i = 0; i < 5; i++) {
+      binary_write("test3.bmap", bits, mode, i);
+   }
+   return;
+}
+
+/* Write 8 rows of 6x"01"+4x"0" */
+void test4()
+{
+   // Truncate existing file
+   std::fstream file;
+   file.open("test4.bmap", std::ios_base::out | std::ios_base::trunc);
+
+   std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
+                                  std::ios_base::in;
+   // Create vector
+   std::vector<bool> bits(12);
+   for (int i = 0; i < 12; i++) {
+      bits[i] = i % 2;
+   }
+   
+   // Write to file
+   for (int i = 0; i < 8; i++) {
+      binary_write("test4.bmap", bits, mode, i);
+   }
+   return;
+}
+
+/* Write 10 rows of 8x"1"+8x"0" */
+void test5()
+{
+   // Truncate existing file
+   std::fstream file;
+   file.open("test5.bmap", std::ios_base::out | std::ios_base::trunc);
 
    std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
                                   std::ios_base::in;
    // Create vector
    std::vector<bool> bits(16);
    for (int i = 0; i < 16; i++) {
-      bits[i] = 1;
+      bits[i] = (i / 8) % 2;
    }
-
+   
    // Write to file
    for (int i = 0; i < 10; i++) {
-      binary_write("test1.bmap", bits, mode, i);
+      binary_write("test5.bmap", bits, mode, i);
    }
    return;
 }
@@ -116,10 +161,18 @@ int main(int argc, char** argv) {
       case 3:
          test3();
          break;
+      case 4:
+         test4();
+         break;
+      case 5:
+         test5();
+         break;
       default:
          test1();
          test2();
          test3();
+         test4();
+         test5();
          break;
    }
 

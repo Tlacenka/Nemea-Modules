@@ -24,7 +24,8 @@
 
 #define CONFIGNAME "config_test.yaml"
 
-bool test6()
+/* Write a simple node */
+bool test1 ()
 {
    // Open/create existing file
    std::fstream config;
@@ -41,27 +42,12 @@ bool test6()
    config.close();
 
    // Write to file
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "module", "start"}), "2016-05-01 2:01:00");
-
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "time", "intervals"}), "50");
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "time", "granularity"}), "200");
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "time", "first"}), "2016-05-01 1:01:20");
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "time", "window"}), "1234");
-
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "addresses", "first"}), "18.0.0.0");
-   config_write(CONFIGNAME, std::vector<std::string>({"test6",
-               "addresses", "last"}), "20.0.0.0");
-   
+   config_write(CONFIGNAME, std::vector<std::string>({"test1"}), "somevalue");
    return true;
 }
 
-bool test5()
+/* Write current time */
+bool test2()
 {
    // Open/create existing file
    std::fstream config;
@@ -78,28 +64,37 @@ bool test5()
    config.close();
 
    // Write to file
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "module", "start"}), "2016-05-01 22:33:00");
+   config_write(CONFIGNAME, std::vector<std::string>({"test2",
+                "now"}), get_formatted_time(std::time(NULL)));
+   return true;
+}
 
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "time", "intervals"}), "1230");
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "time", "granularity"}), "250");
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "time", "first"}), "2016-05-01 21:33:20");
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "time", "window"}), "200");
+/* Write a nested node */
+bool test3()
+{
+   // Open/create existing file
+   std::fstream config;
+   if (std::ifstream(CONFIGNAME).good()) {
+      config.open(CONFIGNAME, std::ios_base::out | std::ios_base::in);
+   } else {
+      config.open(CONFIGNAME, std::ios_base::out | std::ios_base::trunc);
+   }
 
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "addresses", "first"}), "8.0.0.0");
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "addresses", "last"}), "200.0.0.0");
-   config_write(CONFIGNAME, std::vector<std::string>({"test5",
-               "addresses", "granularity"}), "9");
+   if (!config.is_open()) {
+      fprintf(stderr, "Error: File could not be opened/created.\n");
+      return false;
+   }
+   config.close();
+
+   // Write to file
+   config_write(CONFIGNAME, std::vector<std::string>({"test3",
+               "node1", "node2", "node3", "node4", "node5", "node6", "node7"}),
+               "123456someothervalue");
    
    return true;
 }
 
+/* Write an online config */
 bool test4()
 {
    // Open/create existing file
@@ -143,7 +138,8 @@ bool test4()
    return true;
 }
 
-bool test3()
+/* Write an offline config */
+bool test5()
 {
    // Open/create existing file
    std::fstream config;
@@ -160,15 +156,30 @@ bool test3()
    config.close();
 
    // Write to file
-   config_write(CONFIGNAME, std::vector<std::string>({"test3",
-               "node1", "node2", "node3", "node4", "node5", "node6", "node7"}),
-               "123456someothervalue");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "module", "start"}), "2016-05-01 22:33:00");
+
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "time", "intervals"}), "1230");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "time", "granularity"}), "250");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "time", "first"}), "2016-05-01 21:33:20");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "time", "window"}), "200");
+
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "addresses", "first"}), "8.0.0.0");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "addresses", "last"}), "200.0.0.0");
+   config_write(CONFIGNAME, std::vector<std::string>({"test5",
+               "addresses", "granularity"}), "9");
    
    return true;
 }
 
-/* Write 10 rows of 95x"1" + 1x"0" as padding*/
-bool test2()
+/* Write an invalid config */
+bool test6()
 {
    // Open/create existing file
    std::fstream config;
@@ -185,30 +196,23 @@ bool test2()
    config.close();
 
    // Write to file
-   config_write(CONFIGNAME, std::vector<std::string>({"test2",
-                "now"}), get_formatted_time(std::time(NULL)));
-   return true;
-}
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "module", "start"}), "2016-05-01 2:01:00");
 
-/* Writes 10 rows of 16x"1" */
-bool test1 ()
-{
-   // Open/create existing file
-   std::fstream config;
-   if (std::ifstream(CONFIGNAME).good()) {
-      config.open(CONFIGNAME, std::ios_base::out | std::ios_base::in);
-   } else {
-      config.open(CONFIGNAME, std::ios_base::out | std::ios_base::trunc);
-   }
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "time", "intervals"}), "50");
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "time", "granularity"}), "200");
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "time", "first"}), "2016-05-01 1:01:20");
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "time", "window"}), "1234");
 
-   if (!config.is_open()) {
-      fprintf(stderr, "Error: File could not be opened/created.\n");
-      return false;
-   }
-   config.close();
-
-   // Write to file
-   config_write(CONFIGNAME, std::vector<std::string>({"test1"}), "somevalue");
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "addresses", "first"}), "18.0.0.0");
+   config_write(CONFIGNAME, std::vector<std::string>({"test6",
+               "addresses", "last"}), "20.0.0.0");
+   
    return true;
 }
 
