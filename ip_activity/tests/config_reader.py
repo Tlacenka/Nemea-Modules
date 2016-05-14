@@ -21,7 +21,7 @@ import yaml # pyyaml
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import activity_visualisation
 
-path = os.path.dirname(__file__)
+path = '.'
 
 def test1():
    handler = activity_visualisation.Visualisation_Handler()

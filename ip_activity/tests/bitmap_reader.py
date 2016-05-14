@@ -22,12 +22,11 @@ import yaml # pyyaml
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import activity_visualisation
 
-
-path = os.path.dirname(__file__)
+path = '.'
 
 def test1():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 2
    handler.bit_vector_size = 16
    handler.intervals = 10
@@ -42,7 +41,7 @@ def test1():
 
 def test2():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 12
    handler.bit_vector_size = 95
    handler.intervals = 10
@@ -57,7 +56,7 @@ def test2():
 
 def test3():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 2
    handler.bit_vector_size = 9
    handler.intervals = 5
@@ -72,7 +71,7 @@ def test3():
 
 def test4():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 2
    handler.bit_vector_size = 12
    handler.intervals = 8
@@ -87,7 +86,7 @@ def test4():
 
 def test5():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 2
    handler.bit_vector_size = 16
    handler.intervals = 10
@@ -101,7 +100,7 @@ def test5():
       print(str(bitmap[i]))
 def test6():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 2
    handler.bit_vector_size = 16
    handler.intervals = 10
@@ -116,7 +115,7 @@ def test6():
 
 def test7():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.directory = os.path.dirname(__file__)
+   handler.directory = path
    handler.byte_vector_size = 2
    handler.bit_vector_size = 16
    handler.intervals = 10

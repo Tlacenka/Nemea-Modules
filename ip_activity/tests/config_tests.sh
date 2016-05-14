@@ -24,12 +24,12 @@ ELEMENTS=5
 TESTS=()
 
 # Trap tests
-TEST01=("Writing a simple node" "$DIR/config_writer -t 1" 0 "$DIR/config_reader.py -t 1" 1)
-TEST02=("Writing a node containing current time" "$DIR/config_writer -t 2" 0 "$DIR/config_reader.py -t 2" 1)
-TEST03=("Writing a nested node" "$DIR/config_writer -t 3" 0 "$DIR/config_reader.py -t 3" 1)
-TEST04=("Writing a valid configuration (offline)" "$DIR/config_writer -t 4" 0 "$DIR/config_reader.py -t 4" 0)
-TEST05=("Writing a valid configuration (online)" "$DIR/config_writer -t 5" 0 "$DIR/config_reader.py -t 5" 0)
-TEST06=("Writing an invalid configuration" "$DIR/config_writer -t 6" 0 "$DIR/config_reader.py -t 6" 1)
+TEST01=("Writing a simple node" "$DIR/config_writer -t 1" 0 "python config_reader.py -t 1" 1)
+TEST02=("Writing a node containing current time" "$DIR/config_writer -t 2" 0 "python config_reader.py -t 2" 1)
+TEST03=("Writing a nested node" "$DIR/config_writer -t 3" 0 "python config_reader.py -t 3" 1)
+TEST04=("Writing a valid configuration (offline)" "$DIR/config_writer -t 4" 0 "python config_reader.py -t 4" 0)
+TEST05=("Writing a valid configuration (online)" "$DIR/config_writer -t 5" 0 "python config_reader.py -t 5" 0)
+TEST06=("Writing an invalid configuration" "$DIR/config_writer -t 6" 0 "python config_reader.py -t 6" 1)
 
 
 TESTS=("${TEST01[@]}" "${TEST02[@]}" "${TEST03[@]}" "${TEST04[@]}" "${TEST05[@]}" "${TEST06[@]}")

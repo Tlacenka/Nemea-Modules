@@ -24,13 +24,13 @@ ELEMENTS=7
 TESTS=()
 
 # Trap tests
-TEST01=("Writing 10 rows of 16x'1'" "$DIR/bitmap_writer -t 1" 0 2 "test1.bmap" "$DIR/bitmap_reader.py -t 1" 0)
-TEST02=("Writing 10 rows of 95x'1' + padding 1x'0'" "$DIR/bitmap_writer -t 2" 0 6 "test2.bmap" "$DIR/bitmap_reader.py -t 2" 0)
-TEST03=("Writing 5 rows of 9x'1' + padding 7x'0'" "$DIR/bitmap_writer -t 3" 0 2 "test3.bmap" "$DIR/bitmap_reader.py -t 3" 0)
-TEST04=("Writing 8 rows of 6x'01' + padding 4x'0'" "$DIR/bitmap_writer -t 4" 0 2 "test4.bmap" "$DIR/bitmap_reader.py -t 4" 0)
-TEST05=("Writing 5 rows of 0s and 5 of 1s" "$DIR/bitmap_writer -t 5" 0 2 "test5.bmap" "$DIR/bitmap_reader.py -t 5" 0)
-TEST06=("Writing 5 rows of 0s and 5 of 1s shifted by 1" "$DIR/bitmap_writer -t 5" 0 2 "test5.bmap" "$DIR/bitmap_reader.py -t 6" 0)
-TEST07=("Writing 5 rows of 0s and 5 of 1s shifted by 3" "$DIR/bitmap_writer -t 5" 0 2 "test5.bmap" "$DIR/bitmap_reader.py -t 7" 0)
+TEST01=("Writing 10 rows of 16x'1'" "$DIR/bitmap_writer -t 1" 0 2 "test1.bmap" "python bitmap_reader.py -t 1" 0)
+TEST02=("Writing 10 rows of 95x'1' + padding 1x'0'" "$DIR/bitmap_writer -t 2" 0 6 "test2.bmap" "python bitmap_reader.py -t 2" 0)
+TEST03=("Writing 5 rows of 9x'1' + padding 7x'0'" "$DIR/bitmap_writer -t 3" 0 2 "test3.bmap" "python bitmap_reader.py -t 3" 0)
+TEST04=("Writing 8 rows of 6x'01' + padding 4x'0'" "$DIR/bitmap_writer -t 4" 0 2 "test4.bmap" "python bitmap_reader.py -t 4" 0)
+TEST05=("Writing 5 rows of 0s and 5 of 1s" "$DIR/bitmap_writer -t 5" 0 2 "test5.bmap" "python bitmap_reader.py -t 5" 0)
+TEST06=("Writing 5 rows of 0s and 5 of 1s shifted by 1" "$DIR/bitmap_writer -t 5" 0 2 "test5.bmap" "python bitmap_reader.py -t 6" 0)
+TEST07=("Writing 5 rows of 0s and 5 of 1s shifted by 3" "$DIR/bitmap_writer -t 5" 0 2 "test5.bmap" "python bitmap_reader.py -t 7" 0)
 
 TESTS=("${TEST01[@]}" "${TEST02[@]}" "${TEST03[@]}" "${TEST04[@]}" "${TEST05[@]}" "${TEST06[@]}" "${TEST07[@]}")
 TESTS_NR=`expr ${#TESTS[@]} / $ELEMENTS`
