@@ -13,3 +13,6 @@ printf "\n"
 printf "\n"
 ./config_tests.sh $1
 printf "\n"
+
+rm config_writer
+rm bitmap_writer

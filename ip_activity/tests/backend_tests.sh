@@ -95,6 +95,11 @@ then
    rm $DIR/$OUT_FILE
 fi
 
+if [[ -e config.yaml ]]
+then
+   rm config.yaml
+fi
+
 exit
 
 # kill -9 `pidof lt-ip_activity`
