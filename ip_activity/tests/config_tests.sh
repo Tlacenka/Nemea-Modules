@@ -11,48 +11,88 @@ magenta=$(tput setaf 5)
 bold=`tput bold`
 normal=$(tput sgr0)
 
+# Additional variables
+DIR=.
+RETURN=
+VERBOSE=false
+ERR_FILE=tmp.err
+OUT_FILE=tmp.out
+CONFIG_FILE=config_test.yaml
+
+# Tests
+ELEMENTS=3
+TESTS=()
+
+# Trap tests
+TEST01=("Writing a simple node" "$DIR/config_writer -t 1" 0)
+TEST02=("Writing a node containing current time" "$DIR/config_writer -t 2" 0)
+TEST03=("Writing a nested node" "$DIR/config_writer -t 3" 0)
+TEST04=("Writing a valid configuration (offline)" "$DIR/config_writer -t 4" 0)
+TEST05=("Writing a valid configuration (online)" "$DIR/config_writer -t 5" 0)
+TEST06=("Writing an invalid configuration" "$DIR/config_writer -t 6" 0)
+
+
+TESTS=("${TEST01[@]}" "${TEST02[@]}" "${TEST03[@]}" "${TEST04[@]}" "${TEST05[@]}" "${TEST06[@]}")
+TESTS_NR=`expr ${#TESTS[@]} / $ELEMENTS`
+
+# Run tests
+function run_test() {
+
+   # Run command
+   ${2} 2> $DIR/$ERR_FILE > $DIR/$OUT_FILE
+   RETURN="$?"
+
+   # Print output
+   printf "${bold}%-50s${normal}" "${1}:"
+   if [ "$RETURN" = "${3}" ]
+   then
+       printf "${green} PASS${normal}\n"
+        # Print error if verbose
+      if [ "$VERBOSE" = true ]
+      then
+         printf "${yellow}`cat $DIR/$CONFIG_FILE` ${normal}\n"
+      fi
+   else
+      printf "${red} FAIL (expected ${3}) ${normal}\n"
+      if [ "$VERBOSE" = true ]
+      then
+         printf "${yellow}`cat $DIR/$ERR_FILE` ${normal}\n"
+      fi
+   fi
+
+   if [[ -e config_test.yaml ]]
+   then
+      rm config_test.yaml
+   fi
+
+}
+
+# Main
+if [[ "$1" = "-v" ]]
+then
+   VERBOSE=true
+fi
+
 g++ -std=c++0x config_writer.cpp ../ip_activity.hpp ../backend_functions.cpp \
                -o config_writer -lyaml-cpp
 
-printf "${bold}${magenta}Testing config_write${normal}\n"
+printf "${bold}${magenta}Running configuration tests${normal}\n"
 
-printf "${bold}Test 1: writing a simple node:${normal}\n"
-./config_writer -t 1
+for T in $(seq 0 $((TESTS_NR - 1 )))
+do
+   run_test "${TESTS[@]:$(( T * ELEMENTS )):$ELEMENTS}"
 
-cat config_test.yaml
-printf "\n"
-rm config_test.yaml
+done
 
-printf "${bold}Test 2: writing a node containing current time:${normal}\n"
-./config_writer -t 2
+if [[ -e $DIR/$ERR_FILE ]] && [[ -e $DIR/$OUT_FILE ]]
+then
+   rm $DIR/$ERR_FILE
+   rm $DIR/$OUT_FILE
+fi
 
-cat config_test.yaml
-printf "\n"
-rm config_test.yaml
+if [[ -e config_test.yaml ]]
+then
+   rm config_test.yaml
+fi
 
-printf "${bold}Test 3: writing nested node:${normal}\n"
-./config_writer -t 3
-
-cat config_test.yaml
-printf "\n"
-rm config_test.yaml
-
-printf "${bold}Test 4: writing valid configuration (offline)${normal}\n"
-./config_writer -t 4
-
-cat config_test.yaml
-printf "\n"
-
-printf "${bold}Test 5: writing valid configuration (online)${normal}\n"
-./config_writer -t 5
-
-cat config_test.yaml
-printf "\n"
-
-printf "${bold}Test 6: writing invalid configuration${normal}\n"
-./config_writer -t 6
-
-cat config_test.yaml
-printf "\n"
-
-rm config_test.yaml
+exit
