@@ -100,6 +100,8 @@ then
    rm config.yaml
 fi
 
+rm *.bmap
+
 exit
 
 # kill -9 `pidof lt-ip_activity`
