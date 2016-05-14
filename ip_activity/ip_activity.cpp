@@ -312,12 +312,13 @@ int main(int argc, char **argv)
 
    /** Create/open YAML configuration file  and bitmaps */
 
-   std::ifstream config_in(configname);
-   if (!config_in.is_open()) {
+   std::fstream config;
+   config.open(configname, std::ios_base::out | std::ios_base::in);
+   if (!config.is_open()) {
       fprintf(stderr, "Error: File could not be opened/created.\n");
       return 1;
    }
-   config_in.close();
+   config.close();
 
    // Load file to YAML parser
    YAML::Node config_file = YAML::LoadFile(configname);
