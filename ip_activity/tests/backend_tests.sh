@@ -81,7 +81,7 @@ then
    VERBOSE=true
 fi
 
-printf "Running backend tests\n"
+printf "${bold}${magenta}Running backend tests${normal}\n"
 
 for T in $(seq 0 $((TESTS_NR - 1 )))
 do

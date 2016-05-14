@@ -90,15 +90,15 @@ then
    VERBOSE=true
 fi
 
-printf "Running web server tests\n"
-printf "Testing python 2.x\n"
+printf "${bold}${magenta}Running web server tests${normal}\n"
+printf "${bold}${magenta}Testing python 2.x${normal}\n"
 for T in $(seq 0 $((TESTS2_NR - 1 )))
 do
    run_test "${TESTS2[@]:$(( T * ELEMENTS )):$ELEMENTS}"
 
 done
 
-printf "\nTesting python 3.x\n"
+printf "\n${bold}${magenta}Testing python 3.x${normal}\n"
 
 for T in $(seq 0 $((TESTS3_NR - 1 )))
 do

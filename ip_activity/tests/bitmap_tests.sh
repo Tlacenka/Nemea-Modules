@@ -14,19 +14,19 @@ normal=$(tput sgr0)
 g++ -std=c++0x bitmap_writer.cpp ../ip_activity.hpp ../backend_functions.cpp \
                -o bitmap_writer -lyaml-cpp
 
-printf "Testing bitmap_write\n"
+printf "${bold}${magenta}Testing bitmap_write${normal}\n"
 
-printf "${bold}Test 1: writing 10 rows of 16x'1':${normal}"
+printf "${bold}Test 1: writing 10 rows of 16x'1':${normal}\n"
 ./bitmap_writer -t 1
 
 xxd -b -c 2 test1.bmap 
 
-printf "${bold}Test 1: writing 10 rows of 95x'1' + padding 1x'0':${normal}"
+printf "${bold}Test 1: writing 10 rows of 95x'1' + padding 1x'0':${normal}\n"
 ./bitmap_writer -t 2
 
 xxd -b -c 6 test2.bmap 
 
-printf "${bold}Test 1: writing 5 rows of 9x'1' + padding 7x'0':${normal}"
+printf "${bold}Test 1: writing 5 rows of 9x'1' + padding 7x'0':${normal}\n"
 ./bitmap_writer -t 3
 
 xxd -b -c 2 test3.bmap 

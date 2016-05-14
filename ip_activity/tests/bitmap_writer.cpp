@@ -99,8 +99,6 @@ int main(int argc, char** argv) {
       }
    }
 
-   std::cout << test_nr << std::endl;
-
    // Perform tests
    switch (test_nr) {
       case 1:
