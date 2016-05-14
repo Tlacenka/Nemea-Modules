@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Subject: IP Activity - Tests for backend
+# Subject: IP Activity - Tests for web server
 # Author:  Katerina Pilatova
 # Date:    2016
 

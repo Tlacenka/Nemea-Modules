@@ -1,6 +1,6 @@
 /**
  * \file backend.hpp
- * \brief Module for storing IP activity
+ * \brief Header file for backend module.
  * \author Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
  * \date 2016
  */
@@ -59,9 +59,6 @@
 #include <string>
 
 #include "yaml-cpp/yaml.h"
-#include <unirec/ipaddr_cpp.h>
-
-#include "fields.h"
 
 /* Macros */
 #define FIRST_ADDR 0
@@ -83,20 +80,6 @@
 
 #define TIME_LEN 20
 
-/**
- * \brief Converts address based on chosen granularity (shifts to right)
- * \param [in] addr IP address to be checked.
- * \return True upon success.
- */
-void convert_to_granularity (IPaddr_cpp *addr, int granularity);
-
-/**
- * \brief Return size of address space between two addresses in set granularity
- * \param [in] addr1, addr2 start and end of considered range
- * \param [in] granularity  granularity of addresses inside said range.
- * \return addr2/granularity - addr1/granularity
- */
-uint32_t ip_substraction (IPaddr_cpp addr1, IPaddr_cpp addr2);
 
 /**
  * \brief Write bit vector to file.
