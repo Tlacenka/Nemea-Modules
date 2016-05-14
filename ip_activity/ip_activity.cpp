@@ -311,9 +311,13 @@ int main(int argc, char **argv)
    }
 
    /** Create/open YAML configuration file  and bitmaps */
-
    std::fstream config;
-   config.open(configname, std::ios_base::out | std::ios_base::in);
+   if (std::ifstream(configname).good()) {
+      config.open(configname, std::ios_base::out | std::ios_base::in);
+   } else {
+      config.open(configname, std::ios_base::out | std::ios_base::trunc);
+   }
+
    if (!config.is_open()) {
       fprintf(stderr, "Error: File could not be opened/created.\n");
       return 1;
