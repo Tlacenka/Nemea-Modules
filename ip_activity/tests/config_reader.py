@@ -9,7 +9,6 @@
 from __future__ import print_function, division, with_statement
 
 import argparse
-from bitarray import bitarray
 import copy
 import datetime
 import ipaddress
