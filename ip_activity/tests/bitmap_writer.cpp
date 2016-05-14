@@ -1,3 +1,9 @@
+/**
+ * \file bitmap_writer.cpp
+ * \brief Test file for writing data to bitmap file.
+ * \author Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
+ * \date 2016
+ */
 
 #include <getopt.h>
 #include <inttypes.h>
@@ -51,7 +57,7 @@ void test2()
    for (int i = 0; i < 95; i++) {
       bits[i] = 1;
    }
-   
+
    // Write to file
    for (int i = 0; i < 10; i++) {
       binary_write("test2.bmap", bits, mode, i);

@@ -10,5 +10,6 @@ printf "\n"
 ./server_tests.sh $1
 printf "\n"
 ./bitmap_tests.sh $1
-
-rm *.bmap
+printf "\n"
+./config_tests.sh $1
+printf "\n"
