@@ -141,13 +141,8 @@ class Visualisation_Handler:
          # Calculate intervals from elapsed time and interval length
          # Last time is current time
          self.mode = 'online'
-         length = (self.time_window if (self.intervals >= self.time_window) else self.intervals)
+         length = (self.time_window if (self.intervals > self.time_window) else self.intervals)
          self.time_last = self.time_first + datetime.timedelta(seconds=length * self.time_granularity)
-
-         #print(datetime.datetime.strftime(self.time_first, '%d-%m-%Y %H:%M:%S'))
-         #print(datetime.datetime.strftime(self.time_last, '%d-%m-%Y %H:%M:%S'))
-         #print("interval length", self.time_granularity)
-         #print("intervals", self.intervals)
 
       # Get IPs
       if sys.version_info[0] == 2:
@@ -237,7 +232,7 @@ class Visualisation_Handler:
                                 config_file[self.bitmap_filename]['time']['last']),
                                 self.time_format)
          else:
-            length = (self.time_window if (self.intervals >= self.time_window) else self.intervals)
+            length = (self.time_window if (self.intervals > self.time_window) else self.intervals)
             self.time_last = self.time_first + datetime.timedelta(seconds=length * self.time_granularity)
 
       return True
@@ -297,8 +292,8 @@ class Visualisation_Handler:
 
       # Shift by number of intervals from the beginning to get offset in
       # circular buffer
-      if self.intervals >= self.time_window:
-         index = (self.intervals + 1) % self.time_window
+      if self.intervals > self.time_window:
+         index = self.intervals % self.time_window
          for r in range(self.bit_vector_size):
             transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][:index]
 

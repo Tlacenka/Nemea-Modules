@@ -456,7 +456,7 @@ int main(int argc, char **argv)
 
             intervals_str.str("");
             intervals_str.clear();
-            intervals_str << intervals;
+            intervals_str << (intervals + 1);
             config_write(configname, std::vector<std::string>({filename,
                            "time", "intervals"}), intervals_str.str());
 
@@ -515,7 +515,7 @@ int main(int argc, char **argv)
                             "module", "end"}), get_formatted_time(std::time(NULL)));
    intervals_str.str("");
    intervals_str.clear();
-   intervals_str << intervals;
+   intervals_str << (intervals + 1);
 
    config_write(configname, std::vector<std::string>({filename,
                             "time", "intervals"}), intervals_str.str());
