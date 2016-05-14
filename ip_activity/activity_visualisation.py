@@ -250,9 +250,11 @@ class Visualisation_Handler:
       if os.path.isfile(self.directory + '/' + bitmap_name):
          filesize = os.path.getsize(self.directory + '/' + bitmap_name)
       else:
+         print("Bitmap file does not exist.", file=sys.stderr)
          return None
 
       if filesize == 0:
+         print("File size is 0.", file=sys.stderr)
          return None
          
       rows = int(filesize / self.byte_vector_size)
@@ -297,10 +299,10 @@ class Visualisation_Handler:
       # circular buffer
       if self.intervals >= self.time_window:
          index = (self.intervals + 1) % self.time_window
-         for r in range(rows):
-            transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][0:index]
+         for r in range(self.bit_vector_size):
+            transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][:index]
 
-         print("Data offset:", index)
+         #print("Data offset:", index)
 
       return transp_bitmap
 

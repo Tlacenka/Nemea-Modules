@@ -91,7 +91,7 @@ def test5():
    handler.byte_vector_size = 2
    handler.bit_vector_size = 16
    handler.intervals = 10
-   handler.time_window = 7
+   handler.time_window = 11
    bitmap = handler.binary_read("test5.bmap")
 
    if bitmap is None:
@@ -100,7 +100,34 @@ def test5():
    for i in range(16):
       print(str(bitmap[i]))
 def test6():
-   return
+   handler = activity_visualisation.Visualisation_Handler()
+   handler.directory = os.path.dirname(__file__)
+   handler.byte_vector_size = 2
+   handler.bit_vector_size = 16
+   handler.intervals = 10
+   handler.time_window = 10
+   bitmap = handler.binary_read("test5.bmap")
+
+   if bitmap is None:
+      sys.exit(1)
+
+   for i in range(16):
+      print(str(bitmap[i]))
+
+def test7():
+   handler = activity_visualisation.Visualisation_Handler()
+   handler.directory = os.path.dirname(__file__)
+   handler.byte_vector_size = 2
+   handler.bit_vector_size = 16
+   handler.intervals = 10
+   handler.time_window = 8
+   bitmap = handler.binary_read("test5.bmap")
+
+   if bitmap is None:
+      sys.exit(1)
+
+   for i in range(16):
+      print(str(bitmap[i]))
 
 if __name__ == '__main__':
    # Parse self.arguments
@@ -122,6 +149,8 @@ if __name__ == '__main__':
       test5()
    elif arguments['test'] == 6:
       test6()
+   elif arguments['test'] == 7:
+      test7()
    else:
       test1()
       test2()
@@ -129,5 +158,6 @@ if __name__ == '__main__':
       test4()
       test5()
       test6()
+      test7()
    
    sys.exit(0)

@@ -110,7 +110,7 @@ void test4()
    return;
 }
 
-/* Write 10 rows of 8x"1"+8x"0" */
+/* Write 10 rows of 1s and 0s */
 void test5()
 {
    // Truncate existing file
@@ -120,14 +120,21 @@ void test5()
    std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out |
                                   std::ios_base::in;
    // Create vector
-   std::vector<bool> bits(16);
+   std::vector<bool> zeros(16), ones(16);
+   
+   
    for (int i = 0; i < 16; i++) {
-      bits[i] = (i / 8) % 2;
+      zeros[i] = 0;
+      ones[i] = 1;
    }
    
    // Write to file
    for (int i = 0; i < 10; i++) {
-      binary_write("test5.bmap", bits, mode, i);
+      if ((i / 5) % 2) {
+         binary_write("test5.bmap", ones, mode, i);
+       } else {
+         binary_write("test5.bmap", zeros, mode, i);
+      }
    }
    return;
 }

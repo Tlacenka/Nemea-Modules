@@ -63,7 +63,6 @@ import time
 import yaml # pyyaml
 
 # Python 2.x BaseHTTPServer is in http.server in Python 3.x
-# Python 2.x PIL.Image is in Image in Python 3.x
 if sys.version_info[0] == 2:
    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 else:
