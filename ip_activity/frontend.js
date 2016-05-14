@@ -298,7 +298,6 @@ $(document).ready(function() {
 
          document.getElementById("total_int").innerHTML = http_request.getResponseHeader('Interval_range');
 
-         // TODO fix total int not showing up
          // In online mode, update first and last time
          if ($('.bitmap_stats td.mode').html() == 'online') {
             time_range_min = Date.parse(http_request.getResponseHeader('Time_first').replace(" ", "T"));
@@ -333,7 +332,6 @@ $(document).ready(function() {
    $(document).on('mousemove', 'img.hover_coords', function(event) {
 
       // Displaying coordinates
-      // TODO: why is IP one to the left??
       var x = parseInt(event.pageX - $(this).position().left - 1);
       var y = parseInt(event.pageY - $(this).position().top - 51);
 
@@ -425,6 +423,42 @@ $(document).ready(function() {
       down_int = curr_interval;
    });
 
+      // When mouse is up, detach rectangle
+   $(document).on('mouseup', 'html', function() {
+
+      if (mouse_down) {
+         // Insert rectangle values to Options
+         var ip1 = down_ip;
+         var ip2 = curr_IP;         
+         // TODO: handle undefined
+
+         // Is ip1 < ip2 ?
+         if (compare_ips(ip1, ip2)) {
+            $('.bitmap_options input.first_ip').val(ip1);
+            $('.bitmap_options input.last_ip').val(ip2);
+         } else {
+            $('.bitmap_options input.first_ip').val(ip2);
+            $('.bitmap_options input.last_ip').val(ip1);
+         }
+   
+         var int1 = down_int;
+         var int2 = curr_interval;
+         if (Date.parse(int1.replace(" ", "T")) <=
+             Date.parse(int2.replace(" ", "T"))) {
+            $('.bitmap_options input.first_int').val(int1);
+            $('.bitmap_options input.last_int').val(int2);
+         } else {
+             $('.bitmap_options input.first_int').val(int2);
+            $('.bitmap_options input.last_int').val(int1);
+         }
+
+         mouse_down = false;
+         $('#rectangle').hide();
+         mouse_X = -1;
+         mouse_Y = -1;
+      }
+   });
+
    // Returns statement, if ip1 <= ip2
    function compare_ips(ip1, ip2) {
 
@@ -478,42 +512,6 @@ $(document).ready(function() {
 
       return true;
    }
-
-   // When mouse is up, detach rectangle
-   $(document).on('mouseup', 'html', function() {
-
-      if (mouse_down) {
-         // Insert rectangle values to Options
-         var ip1 = down_ip;
-         var ip2 = curr_IP;         
-         // TODO: handle undefined
-
-         // Is ip1 < ip2 ?
-         if (compare_ips(ip1, ip2)) {
-            $('.bitmap_options input.first_ip').val(ip1);
-            $('.bitmap_options input.last_ip').val(ip2);
-         } else {
-            $('.bitmap_options input.first_ip').val(ip2);
-            $('.bitmap_options input.last_ip').val(ip1);
-         }
-   
-         var int1 = down_int;
-         var int2 = curr_interval;
-         if (Date.parse(int1.replace(" ", "T")) <=
-             Date.parse(int2.replace(" ", "T"))) {
-            $('.bitmap_options input.first_int').val(int1);
-            $('.bitmap_options input.last_int').val(int2);
-         } else {
-             $('.bitmap_options input.first_int').val(int2);
-            $('.bitmap_options input.last_int').val(int1);
-         }
-
-         mouse_down = false;
-         $('#rectangle').hide();
-         mouse_X = -1;
-         mouse_Y = -1;
-      }
-   });
 
 });
 

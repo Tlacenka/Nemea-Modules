@@ -56,6 +56,7 @@ import datetime
 import ipaddress
 import math
 import os
+import re
 import signal
 import sys
 import time
@@ -344,6 +345,12 @@ def main():
    arguments = vars(parser.parse_args())
 
    # Check their validity
+   filename_convention = re.compile('^[A-Za-z][A-Za-z0-9_\-]+$')
+
+   if re.match(filename_convention, arguments['filename']) is None:
+      print('Invalid bitmap filename.', file=sys.stderr)
+      sys.exit(1)
+
    if not os.path.isfile(arguments['config']):
       print('Configuration file does not exist.', file=sys.stderr)
       sys.exit(1)

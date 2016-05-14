@@ -95,5 +95,5 @@ fi
 
 exit
 
-# Missing -i option
+# kill -9 `pidof lt-ip_activity`
 

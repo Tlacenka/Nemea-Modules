@@ -136,8 +136,9 @@ hr {
 
 div.floatable {
    float: left;
-   width: 45%;
+   width: 40%;
    max-width: 50%;
+   margin-left: 8%;
 }
 
 #origin .bitmap_list li {
@@ -194,7 +195,7 @@ div.floatable {
 }
 
 .bitmap_options .bitmap_table td {
-   width: 230px;
+   width: 160px;
 }
 
 .selected_stats .bitmap_table td{
