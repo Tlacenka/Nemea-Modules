@@ -13,7 +13,7 @@ bold=`tput bold`
 normal=$(tput sgr0)
 
 # Additional variables
-DIR=.
+DIR=..
 RETURN=
 VERBOSE=false
 ERR_FILE=tmp.err
@@ -80,6 +80,8 @@ if [[ "$1" = "-v" ]]
 then
    VERBOSE=true
 fi
+
+printf "Running backend tests\n"
 
 for T in $(seq 0 $((TESTS_NR - 1 )))
 do

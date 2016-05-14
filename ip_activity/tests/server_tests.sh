@@ -13,7 +13,7 @@ bold=`tput bold`
 normal=$(tput sgr0)
 
 # Additional variables
-DIR=.
+DIR=..
 RETURN=
 VERBOSE=false
 ERR_FILE=tmp.err
@@ -90,6 +90,7 @@ then
    VERBOSE=true
 fi
 
+printf "Running web server tests\n"
 printf "Testing python 2.x\n"
 for T in $(seq 0 $((TESTS2_NR - 1 )))
 do
