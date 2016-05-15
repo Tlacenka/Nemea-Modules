@@ -52,7 +52,7 @@ void binary_write(std::string filename, std::vector<bool> bits,
 }
 
 /* Writing information to configuration file */
-bool config_write (std::string configname, std::vector<std::string> keys,
+bool config_write (std::string configpath, std::vector<std::string> keys,
                    std::string value)
 {
    if (keys.size() == 0) {
@@ -60,7 +60,7 @@ bool config_write (std::string configname, std::vector<std::string> keys,
    }
 
    // Load file in YAML
-   YAML::Node config_yaml = YAML::LoadFile(configname);
+   YAML::Node config_yaml = YAML::LoadFile(configpath);
    // Create vector of nodes for hierarchy
    std::vector<YAML::Node> nodes(keys.size());
    nodes[0] = config_yaml[keys[0]];
@@ -73,7 +73,7 @@ bool config_write (std::string configname, std::vector<std::string> keys,
    nodes[keys.size()-1] = value;
 
    // Save changes to file
-   std::ofstream config_out(configname);
+   std::ofstream config_out(configpath);
    if (!config_out.is_open()) {
       return false;
    }
