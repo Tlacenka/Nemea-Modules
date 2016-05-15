@@ -466,7 +466,7 @@ class Visualisation_Handler:
          image = Image.frombuffer('L', (width, height), img_data, 'raw', ('L', 0, 1))
       else:
          image = Image.frombuffer('L', (width * scaleC, height * scaleR), img_data, 'raw', ('L', 0, 1))
-      image.save(self.directory + '/images/' + filename + '.png')
+      image.save('./images/' + filename + '.png')
 
 
    def edit_bitmap(self, query):
