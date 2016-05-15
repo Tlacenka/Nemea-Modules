@@ -162,7 +162,6 @@ def create_handler(args, handler):
                   # Find out bitmap type (filename_<type>.bmap)
                   bmap_type = self.path.split('_')[1].split('.')[0]
                   self.v_handler.original_bitmap = self.v_handler.binary_read(
-                                        self.arguments['dir'] + '/' +
                                         self.arguments['filename'] + '_' +
                                         bmap_type + '.bmap')
                   if self.v_handler.original_bitmap is not None:
