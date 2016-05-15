@@ -76,12 +76,6 @@ UR_FIELDS (
    ipaddr SRC_IP,
    time TIME_FIRST
 )
-static bool print_flows = false;
-
-void alarm_handler(int sig)
-{
-   print_flows = true;
-}
 
 trap_module_info_t *module_info = NULL;
 
@@ -428,10 +422,6 @@ int main(int argc, char **argv)
    time_t time_first = std::time(NULL), time_curr = std::time(NULL);
    std::ostringstream intervals_str;
 
-   signal (SIGALRM, alarm_handler);
-   uint64_t flows = 0;
-   alarm(10);
-
    /** Main loop */
    while (!stop) {
       const void *rec;
@@ -442,12 +432,6 @@ int main(int argc, char **argv)
       ret = TRAP_RECEIVE(0, rec, rec_size, tmplt);
       // Handle possible errors
       TRAP_DEFAULT_RECV_ERROR_HANDLING(ret, continue, break);
-
-      flows++;
-      if (print_flows) {
-         std::cout << flows << std::endl;
-         alarm(10);
-      }
 
       // Get TIME_FIRST of the first record for the configuration file
       if (first) {
