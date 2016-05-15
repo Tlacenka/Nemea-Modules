@@ -269,7 +269,7 @@ def create_handler(args, handler):
                                            (len(self.v_handler.original_bitmap) == 0))) or
                  (('selected_area' in query) and ((self.v_handler.selected_bitmap is None) or
                                                   (len(self.v_handler.selected_bitmap) == 0))))):
-               self.send_response(200)
+               self.send_response(404)
                self.send_header('Bitmap', 'none')
                self.end_headers()
             else:
