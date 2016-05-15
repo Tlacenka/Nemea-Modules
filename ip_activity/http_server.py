@@ -81,6 +81,10 @@ def sigterm_handler(signal, frame):
 
 
 def create_handler(args, handler):
+   ''' Creates request handler class, function arguments added to the class.
+       args    - parsed arguments dictionary
+       handler - visualisation handler object
+   '''
 
    # Create additional attributes and methods in handler
    class My_RequestHandler(BaseHTTPRequestHandler):

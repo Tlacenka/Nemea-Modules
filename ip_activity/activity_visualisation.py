@@ -102,7 +102,11 @@ class Visualisation_Handler:
 
 
    def load_config(self, directory, bitmap_name, config_name):
-      ''' Initializes all values from the configuration file '''
+      ''' Initializes all values from the configuration file
+          directory   - path to directory with bitmaps and configuration
+          bitmap_name - bitmap filename (excluding suffixes)
+          config_nam  - name of the configuration file (including suffixes)
+      '''
 
       self.config_name = config_name
       self.bitmap_filename = bitmap_name
@@ -171,7 +175,11 @@ class Visualisation_Handler:
       return
 
    def validate_config(self, directory, config_name, mode):
-      ''' Validates configuration structure '''
+      ''' Validates configuration structure 
+           directory   - path to directory containing configuration
+           config_name - filename of configuration file (inclufing suffix)
+           mode        - online/offline
+      '''
 
       # Read configuration file
       try:
@@ -204,8 +212,7 @@ class Visualisation_Handler:
       return config_file
 
    def update_config(self):
-      ''' Updates configuration - mainly focuses on:
-             offline/online mode, time first/last'''
+      ''' Updates configuration - mainly focuses on mode and time range'''
       changed = False
 
       # Check online -> offline
@@ -238,7 +245,9 @@ class Visualisation_Handler:
       return True
 
    def binary_read(self, bitmap_name):
-      ''' Returns 2D bitarray of updated, transposed bitmap '''
+      ''' Returns 2D bitarray of updated, transposed bitmap
+          bitmap_name - bitmap filename (including suffixes)
+      '''
       # xxd [[-b] bitmap_name
 
       # Check if file exists and its size is bigger than 0
@@ -304,7 +313,11 @@ class Visualisation_Handler:
 
    def get_ip_from_index(self, first_ip, index, granularity):
       ''' Calculates IP at index from first_ip considering granularity
-          Handles IPs as strings '''
+          Handles IPs as strings.
+          first_ip    - first ip subnet in range
+          index       - index of wanted IP
+          granularity - subnet size
+      '''
    
       # Shift IP, increment and shift back
       # Expicitly state IPv6:
@@ -333,7 +346,11 @@ class Visualisation_Handler:
 
 
    def get_index_from_ip(self, first_ip, curr_ip, granularity):
-      ''' Calculates offset from first ip to current one (passed as strings) '''
+      ''' Calculates offset from first ip to current one (passed as strings)
+          first_ip    - first IP in range
+          curr_ip     - current IP value for calculating index
+          granularity - subnet size
+      '''
    
       # Get IPs
       if sys.version_info[0] == 2:
@@ -365,21 +382,33 @@ class Visualisation_Handler:
       return int(shifted_2) - int(shifted_1)
 
    def get_time_from_index(self, first_time, index, granularity):
-      ''' Returns time string at index '''
+      ''' Returns time string at index
+          first_time  - first interval in range
+          index       - index of interval
+          granularity - time unit in seconds
+      '''
       return first_time + datetime.timedelta(seconds=index * granularity)
          
    def get_index_from_times(self, time1, time2, granularity):
-      ''' Returns intervals between time1 and time2 '''
+      ''' Returns intervals between time1 and time2
+          time1       - first time in specified range
+          time2       - last time in specified range (at wanted index)
+          granularity - interval length in seconds
+      '''
       return int(math.floor((time2 - time1).total_seconds() / granularity))
-
-   def fill_bitmap(self, bitmap, length):
-      ''' Adds rows so that the result bitmap has a defined length '''
 
    def create_image(self, bitmap, filename, scaleR, scaleC, height, width, selected):
       ''' Create black and white image from bitmap
           Scales bitmap - scaleR:1 for rows, scaleC:1 for columns
-          Fills bitmap with gray until it is width x height '''
-      # http://stackoverflow.com/questions/5672756/binary-list-to-png-in-python
+          Fills bitmap with gray until it is width x height
+          bitmap   - matrix of bitmap defined for visualisation
+          filename - name of final image file
+          scaleR   - scaling of rows in scaleR:1 ration
+          scaleC   - scaling of columns in scaleC:1 ration
+          height   - height of the final image
+          width    - width of the final image
+          selected - if image is to be in the selected area (boolean)
+      '''
 
       print ("height: " + str(height),"width: " + str(width))
 
@@ -390,8 +419,6 @@ class Visualisation_Handler:
       bitmap_width = len(bitmap[0])
       if bitmap_width == 0:
          return
-
-      
 
       # Size of the image:
       # height = address space, width = intervals in bitmap
@@ -452,7 +479,9 @@ class Visualisation_Handler:
 
 
    def edit_bitmap(self, query):
-      ''' Can involve selecting area, changing size '''
+      ''' Can involve selecting area, changing size
+          query - received request query
+      '''
 
       # Check if original bitmap exists
       if self.original_bitmap is None:
