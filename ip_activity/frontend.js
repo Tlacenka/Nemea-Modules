@@ -302,6 +302,7 @@ $(document).ready(function() {
    // Set bitmap if sent
    function set_bitmap(http_request)
    {
+      // TODO HANDLING 404
       // Change image
       if (http_request.getResponseHeader('Bitmap') === 'ok') {
          $('#bitmap_inner').show();

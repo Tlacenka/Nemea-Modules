@@ -263,6 +263,7 @@ div.floatable {
 .origin_curr_position #origin_curr_interval,
 .selected_curr_position #selected_curr_interval {
    width: 50px;
+   height: 2.5em;
 }
 
 /* Input */
