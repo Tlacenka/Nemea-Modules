@@ -373,7 +373,9 @@ $(document).ready(function() {
       var x = parseInt(event.pageX - $(this).position().left - 1);
       var y = parseInt(event.pageY - $(this).position().top - 1);
 
-      if ((x < 0) || (y < 0)) {
+      // Do not update position if it is out of boundaries (frame)
+      if ((x < 0) || (y < 0) || (x >= $(this).width()) ||
+          (y >= $(this).height())) {
          return;
       }
 
