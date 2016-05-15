@@ -234,11 +234,11 @@ def create_handler(args, handler):
                       (self.v_handler.selected_bitmap is not None) and
                        (len(list(self.v_handler.selected_bitmap)) > 0) and
                        (len(self.v_handler.selected_bitmap[0]) > 0)):
-                     # TODO add scaling based on bitmap size
-                     scaleRow = int(math.floor(len(list(self.v_handler.original_bitmap)) /
-                                           len(list(self.v_handler.selected_bitmap))))
-                     scaleCol = int(math.floor(len(self.v_handler.original_bitmap[0]) /
-                                           len(self.v_handler.selected_bitmap[0])))
+
+                     scaleRow = int(math.floor(v_handler.bit_vector_size /
+                                               len(list(self.v_handler.selected_bitmap))))
+                     scaleCol = int(math.floor(v_handler.time_window /
+                                               len(self.v_handler.selected_bitmap[0])))
                      self.v_handler.create_image(self.v_handler.selected_bitmap,
                                                 'selected', scaleRow, scaleCol, 
                                                  self.v_handler.bit_vector_size,
@@ -340,8 +340,8 @@ def main():
    parser.add_argument('-d', '--dir', type=str, default='.',
                        help='Path to directory with bitmaps and ' +
                             'configuration file (current directory by default).')
-   parser.add_argument('-c', '--config', type=str, default='config.yaml',
-                       help='Path to configuration file (current directory by default).')
+   parser.add_argument('-c', '--config', type=str, default='config',
+                       help='Name configuration file (config by default).')
    parser.add_argument('-f', '--filename', type=str, default='bitmap',
                        help='Filename of bitmap storage files (bitmap by default).')
    arguments = vars(parser.parse_args())
@@ -353,15 +353,15 @@ def main():
       print('Invalid bitmap filename.', file=sys.stderr)
       sys.exit(1)
 
-   if not os.path.isfile(arguments['config']):
+   if not os.path.isdir(arguments['dir']):
+      print('Directory for bitmaps and configuration file does not exist.', file=sys.stderr)
+      sys.exit(1)
+
+   if not os.path.isfile(arguments['dir'] + '/' + arguments['config'] + '.yaml'):
       print('Configuration file does not exist.', file=sys.stderr)
       sys.exit(1)
 
-   if not os.path.isdir(arguments['dir']):
-      print('Directory for web client files does not exist.', file=sys.stderr)
-      sys.exit(1)
-
-   # Skip registered?
+   # Check port range
    if (arguments['port'] > 65535) or (arguments['port'] < 1):
       print('Port not within allowed range.', file=sys.stderr)
       sys.exit(1)

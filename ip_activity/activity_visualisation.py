@@ -96,10 +96,6 @@ class Visualisation_Handler:
       self.selected_first_int = 0
       self.selected_last_int = 0
 
-      # How many pixels per unit
-      self.selected_time_unit = 1
-      self.selected_ip_unit = 1
-
 
    def load_config(self, directory, bitmap_name, config_name):
       ''' Initializes all values from the configuration file
@@ -108,7 +104,7 @@ class Visualisation_Handler:
           config_nam  - name of the configuration file (including suffixes)
       '''
 
-      self.config_name = config_name
+      self.config_name = config_name + '.yaml'
       self.bitmap_filename = bitmap_name
       self.directory = directory
 
@@ -170,8 +166,6 @@ class Visualisation_Handler:
       self.bit_vector_size  = self.get_index_from_ip(str(self.first_ip),
                               str(self.last_ip), self.ip_granularity)
       self.byte_vector_size = int(math.ceil(self.bit_vector_size / 8))
-      print('time first: ' + str(self.time_first))
-      print('time last: ' + str(self.time_last))
       return
 
    def validate_config(self, directory, config_name, mode):
@@ -248,7 +242,6 @@ class Visualisation_Handler:
       ''' Returns 2D bitarray of updated, transposed bitmap
           bitmap_name - bitmap filename (including suffixes)
       '''
-      # xxd [[-b] bitmap_name
 
       # Check if file exists and its size is bigger than 0
       if os.path.isfile(self.directory + '/' + bitmap_name):
@@ -305,8 +298,6 @@ class Visualisation_Handler:
          index = self.intervals % self.time_window
          for r in range(self.bit_vector_size):
             transp_bitmap[r] = transp_bitmap[r][index:] + transp_bitmap[r][:index]
-
-         #print("Data offset:", index)
 
       return transp_bitmap
 
@@ -489,7 +480,7 @@ class Visualisation_Handler:
 
       tmp_bitmap = copy.deepcopy(self.original_bitmap)
 
-      # Do magic here
+      # Do magic...editing here
       print ('Editing bitmap')
 
       # Save selected IP range
@@ -521,7 +512,6 @@ class Visualisation_Handler:
          del tmp_bitmap[i]
 
       # Adjust Interval range (deleting columns)
-
       # Save interval range
       self.selected_first_int = datetime.datetime.strptime(query['first_int'][0], self.time_format)
       self.selected_last_int = datetime.datetime.strptime(query['last_int'][0], self.time_format)
