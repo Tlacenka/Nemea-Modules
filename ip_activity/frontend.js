@@ -184,10 +184,9 @@ $(document).ready(function() {
       http_request.open('GET', url, true);
       http_request.onreadystatechange = function() {
          if ((http_request.readyState == 4) && (http_request.status == 200)) {
-            //alert("200")
             callback(http_request);
          } else if ((http_request.readyState == 4) && (http_request.status == 404)) {
-            alert('404');
+            console.log('Response 404: Bitmap not found');
          }
       }
 
