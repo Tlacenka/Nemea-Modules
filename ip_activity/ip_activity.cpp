@@ -92,7 +92,6 @@ trap_module_info_t *module_info = NULL;
    PARAM('r', "range", "Range of processed IP addresses that must correspond format (First address,Last address).", required_argument, "string") \
    PARAM('t', "time_interval", "Time unit for storing data to bitmap (default 5 minutes). [sec]", required_argument, "uint32") \
    PARAM('w', "time_window", "Time window for storing data to bitmap (default 100 intervals). [intervals]", required_argument, "uint32")
-   
 
 static int stop = 0;
 

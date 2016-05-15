@@ -247,7 +247,7 @@ class Visualisation_Handler:
       if os.path.isfile(self.directory + '/' + bitmap_name):
          filesize = os.path.getsize(self.directory + '/' + bitmap_name)
       else:
-         print("Bitmap file does not exist.", file=sys.stderr)
+         print("Bitmap file " + self.directory + '/' + bitmap_name  + "does not exist." , file=sys.stderr)
          return None
 
       if filesize == 0:
