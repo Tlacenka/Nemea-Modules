@@ -58,8 +58,6 @@ $(document).ready(function() {
       update_bitmap();
    }
 
-   // TODO with each update, decrease chosen interval range? or...?
-
    var time_range_min = Date.parse($('.bitmap_stats td.first_time').text().replace(" ", "T"));
    var time_range_max = Date.parse($('.bitmap_stats td.last_time').text().replace(" ", "T"));
 
@@ -301,7 +299,6 @@ $(document).ready(function() {
    // Set bitmap if sent
    function set_bitmap(http_request)
    {
-      // TODO HANDLING 404
       // Change image
       if (http_request.getResponseHeader('Bitmap') === 'ok') {
          $('#bitmap_inner').show();
@@ -496,6 +493,7 @@ $(document).ready(function() {
    
          var int1 = down_int;
          var int2 = curr_interval;
+         console.log(down_int + " " + curr_interval);
 
          // Handle undefined
          // If both intervals are undefined, set them to the whole range
