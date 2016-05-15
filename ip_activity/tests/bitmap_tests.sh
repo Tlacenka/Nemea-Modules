@@ -43,7 +43,7 @@ function run_test() {
    RETURN="$?"
 
    # Print output
-   printf "${bold}%-50s${normal}" "${1} - writer:"
+   printf "${bold}%-60s${normal}" "${1} - writer:"
    if [ "$RETURN" = "${3}" ]
    then
        printf "${green} PASS${normal}\n"
@@ -65,7 +65,7 @@ function run_test() {
    RETURN="$?"
 
    # Print output
-   printf "${bold}%-50s${normal}" "${1} - reader:"
+   printf "${bold}%-60s${normal}" "${1} - reader:"
    if [ "$RETURN" = "${7}" ]
    then
        printf "${green} PASS${normal}\n"

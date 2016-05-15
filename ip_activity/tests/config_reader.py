@@ -25,27 +25,27 @@ path = '.'
 
 def test1():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.load_config(path, 'test1', 'config_test.yaml')
+   handler.load_config(path, 'test1', 'config_test')
 
 def test2():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.load_config(path, 'test2', 'config_test.yaml')
+   handler.load_config(path, 'test2', 'config_test')
 
 def test3():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.load_config(path, 'test3', 'config_test.yaml')
+   handler.load_config(path, 'test3', 'config_test')
 
 def test4():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.load_config(path, 'test4', 'config_test.yaml')
+   handler.load_config(path, 'test4', 'config_test')
 
 def test5():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.load_config(path, 'test5', 'config_test.yaml')
+   handler.load_config(path, 'test5', 'config_test')
 
 def test6():
    handler = activity_visualisation.Visualisation_Handler()
-   handler.load_config(path, 'test6', 'config_test.yaml')
+   handler.load_config(path, 'test6', 'config_test')
 
 if __name__ == '__main__':
    # Parse self.arguments
