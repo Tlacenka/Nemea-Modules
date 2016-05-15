@@ -197,17 +197,25 @@ def create_handler(args, handler):
 
                   
                   if (tmp_bitmap is not None) and (len(tmp_bitmap) > 0):
-                     # If it is out of boundaries, return undefined
-                     if (x >= len(tmp_bitmap)) or (y >= len(tmp_bitmap[0])):
+                     # IP out of range
+                     if x >= len(tmp_bitmap):
                         tmp_ip = 'undefined'
-                        tmp_time = 'undefined'
-                        colour = 'gray'
                      else:
-                        # Get IP, time and colour
+                        # Get IP
                         tmp_ip = self.v_handler.get_ip_from_index(tmp_ip,
                                  x, self.v_handler.ip_granularity)
+                     # Interval out of range
+                     if y >= len(tmp_bitmap[0]):
+                        tmp_time = 'undefined'
+                     else:
+                        # Get interval
                         tmp_time = self.v_handler.get_time_from_index(tmp_time,
                                  y, self.v_handler.time_granularity)
+                     # If either exceeds the range, gray is set
+                     if ((x >= len(tmp_bitmap)) or (y >= len(tmp_bitmap[0]))):                        
+                        colour = 'gray'
+                     else:
+                        # Get colour
                         colour = "white" if tmp_bitmap[x][y] else "black"
 
                   # Send needed information
@@ -215,6 +223,7 @@ def create_handler(args, handler):
                   self.send_header('Content-type', 'text/plain')
                   self.send_header('IP_index', tmp_ip)
                   self.send_header('Cell_colour', colour)
+                  # Convert time to timestamp if defined
                   if tmp_time == 'undefined':
                      self.send_header('Time_index', tmp_time)
                   else:
