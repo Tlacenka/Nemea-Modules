@@ -235,9 +235,9 @@ def create_handler(args, handler):
                        (len(list(self.v_handler.selected_bitmap)) > 0) and
                        (len(self.v_handler.selected_bitmap[0]) > 0)):
 
-                     scaleRow = int(math.floor(v_handler.bit_vector_size /
+                     scaleRow = int(math.floor(self.v_handler.bit_vector_size /
                                                len(list(self.v_handler.selected_bitmap))))
-                     scaleCol = int(math.floor(v_handler.time_window /
+                     scaleCol = int(math.floor(self.v_handler.time_window /
                                                len(self.v_handler.selected_bitmap[0])))
                      self.v_handler.create_image(self.v_handler.selected_bitmap,
                                                 'selected', scaleRow, scaleCol, 

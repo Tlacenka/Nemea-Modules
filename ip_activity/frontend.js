@@ -466,7 +466,19 @@ $(document).ready(function() {
          // Insert rectangle values to Options
          var ip1 = down_ip;
          var ip2 = curr_IP;         
-         // TODO: handle undefined
+
+
+         // Handle undefined
+         // If both IPs are undefined, set them to the whole range
+         if ((ip1 === 'undefined') && (ip2 === 'undefined')) {
+            ip1 = $('.bitmap_stats td.range').text().split(" ")[0];
+            ip2 = $('.bitmap_stats td.range').text().split(" ")[2];
+         // If one of them, set it to the maximum IP
+         } else if (ip1 === 'undefined') {
+            ip1 = $('.bitmap_stats td.range').text().split(" ")[2];
+         } else if (ip2 === 'undefined') {
+            ip2 = $('.bitmap_stats td.range').text().split(" ")[2];
+         }
 
          // Is ip1 < ip2 ?
          if (compare_ips(ip1, ip2)) {
@@ -476,9 +488,23 @@ $(document).ready(function() {
             $('.bitmap_options input.first_ip').val(ip2);
             $('.bitmap_options input.last_ip').val(ip1);
          }
+
    
          var int1 = down_int;
          var int2 = curr_interval;
+
+         // Handle undefined
+         // If both intervals are undefined, set them to the whole range
+         if ((int1 === 'undefined') && (int2 === 'undefined')) {
+            int1 = $('.bitmap_stats td.first_time').text();
+            int2 = $('.bitmap_stats td.last_time').text();
+         // If one of them, set it to the maximum interval
+         } else if (int1 === 'undefined') {
+            int1 = $('.bitmap_stats td.last_time').text();
+         } else if (int2 === 'undefined') {
+            int2 = $('.bitmap_stats td.last_time').text();
+         }
+
          if (Date.parse(int1.replace(" ", "T")) <=
              Date.parse(int2.replace(" ", "T"))) {
             $('.bitmap_options input.first_int').val(int1);
