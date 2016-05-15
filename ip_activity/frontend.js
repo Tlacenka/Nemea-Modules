@@ -427,12 +427,12 @@ $(document).ready(function() {
       // Dragging
       if (mouse_down) {
          var width = Math.abs(mouse_X - event.pageX);
-         var height = Math.abs(mouse_Y - event.pageY + 50);
+         var height = Math.abs(mouse_Y - event.pageY);
          $('#rectangle').css({
             'width': width - 1,
             'height': height - 1,
             'left': ((event.pageX < mouse_X) ? (mouse_X - width) : mouse_X),
-            'top': ((event.pageY - 50 < mouse_Y) ? (mouse_Y - height) : mouse_Y)
+            'top': ((event.pageY < mouse_Y) ? (mouse_Y - height) : mouse_Y)
          });
       }
    });
@@ -445,7 +445,7 @@ $(document).ready(function() {
       mouse_down = true;
       event.preventDefault();
       mouse_X = event.pageX;
-      mouse_Y = event.pageY - 50;
+      mouse_Y = event.pageY;
       $('#rectangle').css({
          'border': '2px solid DeepSkyBlue',
          'background': 'transparent',
