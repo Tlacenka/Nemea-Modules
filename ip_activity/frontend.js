@@ -371,7 +371,7 @@ $(document).ready(function() {
 
       // Displaying coordinates
       var x = parseInt(event.pageX - $(this).position().left - 1);
-      var y = parseInt(event.pageY - $(this).position().top - 51);
+      var y = parseInt(event.pageY - $(this).position().top - 1);
 
       if ((x < 0) || (y < 0)) {
          return;
