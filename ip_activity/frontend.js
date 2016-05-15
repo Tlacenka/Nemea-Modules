@@ -341,6 +341,8 @@ $(document).ready(function() {
 
             document.getElementById('stat_first_time').innerHTML = http_request.getResponseHeader('Time_first');
             document.getElementById('stat_last_time').innerHTML = http_request.getResponseHeader('Time_last');
+            $('.bitmap_options input.first_int').val(http_request.getResponseHeader('Time_first'));
+            $('.bitmap_options input.last_int').val(http_request.getResponseHeader('Time_last'));
 
             // Online > offline
             if (http_request.getResponseHeader('Mode') == 'offline') {
