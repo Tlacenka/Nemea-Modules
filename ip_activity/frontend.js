@@ -371,7 +371,7 @@ $(document).ready(function() {
       var y = parseInt(event.pageY - $(this).position().top - 1);
 
       // Do not update position if it is out of boundaries (frame)
-      if ((x < 0) || (y < 0) || (x >= $(this).width()) ||
+      if ((x < 1) || (y < 1) || (x >= $(this).width()) ||
           (y >= $(this).height())) {
          return;
       }
@@ -493,7 +493,7 @@ $(document).ready(function() {
    
          var int1 = down_int;
          var int2 = curr_interval;
-         console.log(down_int + " " + curr_interval);
+         console.log("before:" + down_int + " " + curr_interval);
 
          // Handle undefined
          // If both intervals are undefined, set them to the whole range
@@ -515,6 +515,7 @@ $(document).ready(function() {
              $('.bitmap_options input.first_int').val(int2);
             $('.bitmap_options input.last_int').val(int1);
          }
+         console.log("after:" + down_int + " " + curr_interval);
 
          mouse_down = false;
          $('#rectangle').hide();
