@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -10,6 +11,46 @@
 	<link rel="stylesheet" type="text/css" href="frontend.css">
 </head>
 
+<!--
+ * file:   introduction.html
+ * brief:  About page for IP activity frontend
+ * author: Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
+ * date:   2016
+ * Copyright (C) 2016 CESNET
+ *
+ * LICENSE TERMS
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * ALTERNATIVELY, provided that this notice is retained in full, this
+ * product may be distributed under the terms of the GNU General Public
+ * License (GPL) version 2 or later, in which case the provisions
+ * of the GPL apply INSTEAD OF those given above.
+ *
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+-->
+
 <body id="bodyid">
 <div id="page">
 
@@ -18,43 +59,91 @@
    <div class="wrapper">
       <h1>IP Activity analysis</h1>
       <ul id="top_menu">
-         <li class="btn"> <a href="./frontend.html"> Home </a> </li>
-         <li class="btn"> <a href="./introduction.html"> About </a> </li>
+         <li class="btn"> <a href="frontend.html"> Home </a> </li>
+         <li class="btn"> <a href="introduction.html"> About </a> </li>
       </ul>
    </div>
 </header>
 
 <!-- Introduction - might be moved to other page -->
-<section id="introduction">
+<div id="main" class="introduction">
    <div class="wrapper">
       <h2> Introduction </h2>
-      <p class="text"> This module blablbala. Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
-          Fusce tellus. Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-          accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo
-          inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-          Donec quis nibh at felis congue commodo. Maecenas aliquet accumsan leo.
-          Fusce aliquam vestibulum ipsum. Integer rutrum, orci vestibulum ullamcorper
-          ultricies, lacus quam ultricies odio, vitae placerat pede sem sit amet enim.
-          Pellentesque ipsum. Aenean fermentum risus id tortor. Mauris dolor felis,
-          sagittis at, luctus sed, aliquam non, tellus. Etiam bibendum elit eget erat.
-          Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
-          adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore
-          magnam aliquam quaerat voluptatem. Nullam sit amet magna in magna gravida vehicula.
-          Nullam sapien sem, ornare ac, nonummy non, lobortis a enim. Duis aute irure dolor
-          in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+      <p class="text">
+         This interface is used for visualising IP address activity.
+         It contains interactive elements using AJAX technology, so that the page
+         can change dynamically based on user's request without reloading the page.
       </p>
-      <h2> Howto </h2>
-      <p class="text"> This module blablbala.  Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
-          Fusce tellus. Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-          accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo
-          inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-          Donec quis nibh at felis congue commodo. Maecenas aliquet accumsan leo.
-          Fusce aliquam vestibulum ipsum. Integer rutrum, orci vestibulum ullamcorper
-          ultricies, lacus quam ultricies odio, vitae placerat pede sem sit amet enim.
-          Pellentesque ipsum. Aenean fermentum risus id tortor.
+
+      <p class="text">
+         In order to run properly, the used browser needs <strong>JavaScript</strong> enabled.<br>
+         All .html and .css files have been validated by <a href="https://validator.w3.org/">W3C Validator</a>.
       </p>
+
+      <h2> Guide </h2>
+         <p class="text">
+            This section contains guide for main operations and offers the description of the main page sections.
+         </p>
+      <h3>Initialisation</h3>
+      <p class="text"> 
+         The interface is provided by a custom web server, also created for the purposes of this
+         project. Therefore, the activity of the interface is dependent on the server state.
+         In order to interact with the interface, the web server has to be set up and listening
+         on the defined port.
+      </p>
+      <h3>Available Information</h3>
+      <p class="text"> 
+         The page is divided in two parts. The top part is intended for visualising data
+         of the whole specified address space during the whole time window. The bottom part is
+         hidden until the user selects an area they want to examine further. It contains
+         information about the specified area and the image visualising the area activity is
+         automatically scaled.
+      </p>
+      <p class="text">
+         The parameters of the stored IP activity is available in <strong>Characteristics</strong> section.
+         In order to get activity status of a specific cell, the user can hover over the
+         image which will update the coordinates' values in the <strong>Current Position</strong> section.
+      </p>
+      <h3>Activity Status</h3>
+      <p class="text">Activity status of all IPs can be determined by a distinctive colour at the chosen coordinates. The
+      used colours are defined as follows:</p>
+      <ul>
+         <li><strong>black</strong>: During the given interval, the IP address was inactive.</li>
+         <li><strong>white</strong>: During the given interval, the IP address was active.</li>
+         <li><strong>gray</strong>: There is no information about activity for the given interval or address.</li>
+      </ul>
+      
+      <h3>Area Selection</h3>
+      <p class="text">
+         The user can select an area for detail examination by choosing both value ranges and submitting the form in the
+         <strong>Select Bitmap Area</strong> section.
+      </p>
+      <p class="text">
+         The first way is the manual way. The user can type the selected ranges to the form.
+         It is useful when the user knows the area they want to display separately.
+      </p>
+      <p class="text">
+         The second way is used for examining the visualised activity based on an interesting pattern found in the image. Instead of having to
+         find out the minimum and maximum values in both dimensions limiting the area, the user can simply drag the cursor and select
+         the area by enclosing it within the displayed frame. The frame size changes based on the cursor direction. When the selection is done,
+         the values of both ranges are automatically inserted in the form.
+      </p>
+
+      <h2>Project Details</h2>
+      <p class="text">
+         This interface is a part of bachelor's thesis <strong>IP Address Activity Monitoring</strong>
+         at Brno University of Technology, Faculty of Information Technology, in 2016.
+         The project was created in cooperation with CESNET company.
+      </p>
+      <div>
+         <ul class="contacts">
+            <li><strong>Author</strong>: Kateřina Pilátová</li>
+            <li><strong>E-mail</strong>: <a href="mailto:xpilat05@stud.fit.vutbr.cz">xpilat05@stud.fit.vutbr.cz</a></li>
+            <li><strong>Institution</strong>: <a href="https://www.cesnet.cz/">CESNET</a></li>
+         </ul>
+      </div>
    </div>
-</section>
+</div>
 
 <!-- Footer -->
 <footer id="footer">

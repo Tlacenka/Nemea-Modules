@@ -1,8 +1,8 @@
 /**
- * \file ip_activity.cpp
- * \brief Stylesheet for IP activity frontend
- * \author Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
- * \date 2016
+ * file:   frontend.css
+ * brief:  Stylesheet for IP activity frontend
+ * author: Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
+ * date:   2016
  */
 /*
  * Copyright (C) 2016 CESNET
@@ -52,7 +52,6 @@ html,body {
 
 li:hover, input[type=submit]:hover {
    cursor: pointer;
-   cursor: hand;
 }
 
 h1 {
@@ -98,6 +97,16 @@ hr {
 #main {
    margin: 50px auto 0px;
    width: 900px;
+   min-height: 600px;
+}
+
+ul.contacts{
+   display: block;
+   height: 150px;
+}
+
+p.text {
+   padding-bottom: 10px;
 }
 
 #origin div.wrapper, #selected div.wrapper {
@@ -119,6 +128,7 @@ hr {
    left: 0px;
    width: 1000px;
    overflow: visible;
+   padding-top: 20px;
 }
 
 /* Header */

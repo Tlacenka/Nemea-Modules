@@ -1,11 +1,24 @@
 <!DOCTYPE html>
 
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>IP Activity Analyser</title>
+	<meta name="robots" content="index,follow">
+	<meta name="author" content="Katerina Pilatova">
+	<meta name="keywords" content="IP activity,data visualisation,networking,nemea">
+	<meta name="description" content="IP activity visualisation software.">
+	<link rel="stylesheet" type="text/css" href="frontend.css">
+   <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
+   <script type='text/javascript' src='jquery-1.9.1.min.js'></script>
+   <script src="frontend.js"></script>
+</head>
+
 <!--
- * \file ip_activity.cpp
- * \brief Frontend contend for IP activity visualisation
- * \author Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
- * \date 2016
- *
+ * file:   frontend.html
+ * brief:  Main page for IP activity frontend
+ * author: Katerina Pilatova <xpilat05@stud.fit.vutbr.cz>
+ * date:   2016
  * Copyright (C) 2016 CESNET
  *
  * LICENSE TERMS
@@ -41,20 +54,6 @@
  * if advised of the possibility of such damage.
 -->
 
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title>IP Activity Analyser</title>
-	<meta name="robots" content="index,follow">
-	<meta name="author" content="Katerina Pilatova">
-	<meta name="keywords" content="IP activity,data visualisation,networking,nemea">
-	<meta name="description" content="IP activity visualisation software.">
-	<link rel="stylesheet" type="text/css" href="frontend.css">
-   <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
-   <script type='text/javascript' src='jquery-1.9.1.min.js'></script>
-   <script src="frontend.js"></script>
-</head>
-
 <body id="bodyid">
 <div id="page">
 
@@ -70,11 +69,11 @@
 </header>
 
 
-<section id="main">
+<div id="main">
 <div class="wrapper">
    
    <!-- Original Bitmap -->
-   <section id="origin">
+   <div id="origin">
       <div class="wrapper">
          <!--
          <h2> Instructions </h2>
@@ -196,10 +195,10 @@
          <div id="bitmap_inner"></div>
 
       </div>
-   </section>
+   </div>
 
    <!-- Selected area -->
-   <section id="selected">
+   <div id="selected">
       <div class="wrapper">
          <hr>
          <h2> Selected Area </h2>
@@ -254,10 +253,10 @@
 
          <div id="selected_area"></div>
       </div>
-   </section>
+   </div>
 
 </div>
-</section>
+</div>
 
 <!-- Footer -->
 <footer id="footer">
