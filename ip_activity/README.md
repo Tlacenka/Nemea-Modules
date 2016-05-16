@@ -16,6 +16,8 @@ If `yaml-cpp` package is not available, you can build it yourself [here](https:/
 
 You can install these packages automatically by executing the `install_dependencies.sh` script.
 
+- - - -
+
 # IP Activity - backend module ip_activity
 
 ## Description
@@ -46,6 +48,8 @@ This module scans traffic and stores IP activity to the dedicated bitmap.
 `./ip_activity -i "t:localhost:12345" -g 24 -r "169.0.0.0,169.1.0.0" -f my_bitmap`
 
 This command will start IP activity scanner, will distinguish between /24 networks in 169.0.0.0-169.1.0.0 range and will store bitmap in files starting with "my_bitmap".
+
+- - - -
 
 # IP Activity - Web server
 
