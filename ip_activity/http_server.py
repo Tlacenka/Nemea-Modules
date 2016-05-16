@@ -272,6 +272,7 @@ def create_handler(args, handler):
                content_type = 'image/x-icon'
             elif self.path.endswith(".map"):
                self.send_response(200)
+               return
             else:
                print("Path " + self.path + " was not recognized.", file=sys.stderr)
                self.send_response(404)
