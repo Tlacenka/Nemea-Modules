@@ -254,8 +254,6 @@ def create_handler(args, handler):
                      # Set path to selected image
                      self.path = '/images/selected.png'
    
-            print('PATH ' + self.path)
-   
             open_mode = 'r'
    
             # Detect type
