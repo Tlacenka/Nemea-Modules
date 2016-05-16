@@ -363,8 +363,8 @@ class Visualisation_Handler:
       shift = ip1.max_prefixlen - granularity
 
       if self.ip_size == 128:
-         shifted_1 = ipaddress.IPv6address(int(ip1) >> shift)
-         shifted_2 = ipaddress.IPv6address(int(ip2) >> shift)
+         shifted_1 = ipaddress.IPv6Address(int(ip1) >> shift)
+         shifted_2 = ipaddress.IPv6Address(int(ip2) >> shift)
       else:
          shifted_1 = ipaddress.ip_address(int(ip1) >> shift)
          shifted_2 = ipaddress.ip_address(int(ip2) >> shift)
