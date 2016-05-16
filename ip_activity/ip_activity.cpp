@@ -405,7 +405,7 @@ int main(int argc, char **argv)
    convert_to_granularity(&range[FIRST_ADDR], granularity);
    convert_to_granularity(&range[LAST_ADDR], granularity);
 
-   std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
+   //std::cout << range[FIRST_ADDR].toString() << " and " << range[LAST_ADDR].toString() << std::endl;
 
 
    // Get size of bit vector
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
       return 1;
    }
 
-   std::cout << "vector size: " << vector_size << std::endl;
+   //std::cout << "vector size: " << vector_size << std::endl;
 
    // Create bit vectors and basis for open modes.
    std::vector<std::vector<bool>> bits (3, std::vector<bool>(vector_size, 0));
