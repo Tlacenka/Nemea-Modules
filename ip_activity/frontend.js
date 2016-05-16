@@ -548,11 +548,11 @@ $(document).ready(function() {
          for (var i = 0; i < 2; i++, tmp = ip2_list) {
             var len = tmp.length;
             // Get rid of grouped ::, normalize to length of 4
-            for (var i = 0; i < len; i++) {
-               if (tmp[i] != '') {
-                  tmp[i] = ('0000' + tmp[i]).substr(-4);
+            for (var j = 0; j < len; j++) {
+               if (tmp[j] != '') {
+                  tmp[j] = ('0000' + tmp[i]).substr(-4);
                } else {
-                  tmp[i] = '0000';
+                  tmp[j] = '0000';
                }
             }
 
