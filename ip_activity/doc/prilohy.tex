@@ -1,0 +1,60 @@
+%=========================================================================
+% (c) Kateřina Pilátová, 3BIT
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1em}
+
+\csdoublequotesoff
+\chapter{CD Content}
+This section is concerned with the contents of the attached CD.
+It includes the basic set of files forming the developed system.
+
+However, not all files needed for running the system are included -- the
+autotool configuration file and IP address library for C++ which was
+extended for the purposes of this thesis are available in the git
+repository forks (see Section~\ref{sec:requirements}).
+
+The main sections are:
+\begin{itemize}
+  \item \itab{\footnotesize{\texttt{.}}} \tab{The root directory contains source files, scripts and guides.}
+  \item \itab{\footnotesize{\texttt{images/}}} \tab{In this directory, visualised images are to be stored.}
+  \item \itab{\footnotesize{\texttt{tests/}}} \tab{This directory is dedicated to testing and contains test suite.}
+  \item \itab{\footnotesize{\texttt{doc/}}} \tab{Here the the source files for the thesis text version are located.}
+\end{itemize}
+
+Even though most of the files contain a~section with the used~licence, \textit{licence.txt} file is also included.
+
+
+\chapter{Installation Guide}
+\section{Requirements}\label{sec:requirements}
+In order to use the system, the following requirements must be met:
+\begin{itemize}
+   \item The target system must have g++ installed.
+   \item The target system must have Python 2 or 3 available.
+   \item In order to run the web client, the target browser must have JavaScript enabled.
+   \item In order to install the backend, access to Nemea repository is required.
+   \item It is essential to download the updates of the Nemea repository and Nemea framework
+   from my forked repository of Nemea-Framework~\cite{my_repo_framework} and Nemea-Modules~\cite{my_repo_modules}.
+   In there, changes of autotools configuration file and \textit{ipaddr\_cpp.h} are up-to-date.
+\end{itemize}
+
+\section{Additional Packages}
+\begin{itemize}
+   \item For backend, only C++ \textit{Boost} library and \textit{yaml-cpp} version 0.5.3 libraries are required.
+   In order to run the backend on a~machine (for example \textit{benefizio}) where the 0.5.3 version is not available,
+   the library has to be installed straight from the source~\cite{yaml_cpp} and the path to it included in the
+   \textit{Makefile.am}.
+   \item The attached archive contains a~script \textit{install\_dependencies.sh} which should
+   install the required packages for both C++ (if the 0.5.3 version is available) and Python both 2.x and 3.x.
+\end{itemize}
+
+\section{Running the System}
+The backend has to be run first so that it can create the bitmaps and more importantly, the configuration file.
+The backend parameters are discussed in Section~\ref{sec:backend_params} and can be displayed by
+entering \texttt{-h [trap]} parameter.
+
+The server program cannot be executed until the configuration file is created. Server's parameters
+are listed in Section~\ref{sec:server_params} or can be displayed by entering \texttt{-h} or \texttt{-{}-help}
+parameter. When executing the server, make sure to set up the port based on your options.
+
+The frontend program has to run in a browser which has \textit{JavaScript} enabled. It does not need
+an internet connection as the \textit{jQuery} library is provided in the archive.

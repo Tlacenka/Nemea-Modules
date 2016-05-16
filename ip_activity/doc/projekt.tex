@@ -1,0 +1,297 @@
+%============================================================================
+% tento soubor pouzijte jako zaklad
+% (c) 2008 Michal Bidlo
+% E-mail: bidlom AT fit vutbr cz
+%============================================================================
+% kodovaní: UTF-8 (zmena prikazem iconv, recode nebo cstocs)
+%----------------------------------------------------------------------------
+% zpracování: make, make pdf, make clean
+%============================================================================
+% Šablonu upravil: Ing. Jaroslav Dytrych, idytrych@fit.vutbr.cz
+%============================================================================
+\documentclass[english]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
+%\documentclass[zadani]{fitthesis} % odevzdani do wisu - odkazy jsou barevné
+%\documentclass[zadani,print]{fitthesis} % pro tisk - odkazy jsou černé
+%\documentclass[english,print]{fitthesis} % pro tisk - odkazy jsou černé
+% * Je-li prace psana v anglickem jazyce, je zapotrebi u tridy pouzit 
+%   parametr english nasledovne:
+%      \documentclass[english]{fitthesis}
+% * Je-li prace psana ve slovenskem jazyce, je zapotrebi u tridy pouzit 
+%   parametr slovak nasledovne:
+%      \documentclass[slovak]{fitthesis}
+
+\usepackage[czech,english]{babel}
+\usepackage[utf8]{inputenc} %kodovani
+\usepackage[T1]{fontenc}
+\usepackage{cmap}
+\usepackage{url}
+\DeclareUrlCommand\url{\def\UrlLeft{<}\def\UrlRight{>} \urlstyle{tt}}
+
+% zde muzeme vlozit vlastni balicky
+\usepackage{listings}
+\usepackage[toc,page,header]{appendix}
+\RequirePackage{titletoc}
+\ifczech
+  \usepackage{ae}
+\fi
+
+\input{pisma.tex}
+
+% moje
+\usepackage{float}
+\usepackage{mathtools}
+\usepackage{amsmath, amsfonts}
+\newcommand{\itab}[1]{\hspace{0em}\rlap{#1}}
+\newcommand{\tab}[1]{\hspace{.22\textwidth}\rlap{#1}}
+\newcommand{\quotes}[1]{``#1''}
+
+\usepackage[dvipsnames]{xcolor}
+\usepackage{pxfonts}
+
+% style pro listing
+\lstset{language=C++,
+      basicstyle=\ttfamily,
+      keywordstyle=\bfseries\color{Blue}\ttfamily,
+      stringstyle=\color{YellowOrange}\ttfamily,
+      commentstyle=\color{ForestGreen}\ttfamily,
+      morecomment=[l][\color{Purple}]{\#}
+}
+
+% vypne funkci nové šablony, která automaticky nahrazuje uvozovky,
+% aby nebyly prováděny nevhodné náhrady v popisech API apod.
+\csdoublequotesoff
+
+% =======================================================================
+% balíček "hyperref" vytváří klikací odkazy v pdf, pokud tedy použijeme pdflatex
+% problém je, že balíček hyperref musí být uveden jako poslední, takže nemůže
+% být v šabloně
+\ifWis
+\ifx\pdfoutput\undefined % nejedeme pod pdflatexem
+\else
+  \usepackage{color}
+  \usepackage[unicode,colorlinks,hyperindex,plainpages=false,pdftex]{hyperref}
+  \definecolor{links}{rgb}{0.4,0.5,0}
+  \definecolor{anchors}{rgb}{1,0,0}
+  \def\AnchorColor{anchors}
+  \def\LinkColor{links}
+  \def\pdfBorderAttrs{/Border [0 0 0] }  % bez okrajů kolem odkazů
+  \pdfcompresslevel=9
+\fi
+\else % pro tisk budou odkazy, na které se dá klikat, černé
+\ifx\pdfoutput\undefined % nejedeme pod pdflatexem
+\else
+  \usepackage{color}
+  \usepackage[unicode,colorlinks,hyperindex,plainpages=false,pdftex,urlcolor=black,linkcolor=black,citecolor=black]{hyperref}
+  \definecolor{links}{rgb}{0,0,0}
+  \definecolor{anchors}{rgb}{0,0,0}
+  \def\AnchorColor{anchors}
+  \def\LinkColor{links}
+  \def\pdfBorderAttrs{/Border [0 0 0] } % bez okrajů kolem odkazů
+  \pdfcompresslevel=9
+\fi
+\fi
+
+%Informace o praci/projektu
+%---------------------------------------------------------------------------
+\projectinfo{
+  %Prace
+  project=BP,            %typ prace BP/SP/DP/DR
+  year=2016,             %rok
+  date=\today,           %datum odevzdani
+  %Nazev prace
+  title.cs={Sledování historie aktivity IP adres},  %nazev prace v cestine ci slovenstine (dle zadani)
+  title.en={IP Address Activity Monitoring}, %nazev prace v anglictine
+  %Autor
+  author={Kateřina Pilátová},   %cele jmeno a prijmeni autora
+  author.name={Kateřina},   %jmeno autora (pro citaci)
+  author.surname={Pilátová},   %prijmeni autora (pro citaci)
+  %author.title.p=Bc., %titul pred jmenem (nepovinne)
+  %author.title.a=PhD, %titul za jmenem (nepovinne)
+  %Ustav
+  department=UPSY, % doplnte prislusnou zkratku dle ustavu na zadani: UPSY/UIFS/UITS/UPGM
+  %Skolitel
+  supervisor=Václav Bartoš, %cele jmeno a prijmeni skolitele
+  supervisor.name={Václav},   %jmeno skolitele (pro citaci)
+  supervisor.surname={Bartoš},   %prijmeni skolitele (pro citaci)
+  supervisor.title.p=Ing.,   %titul pred jmenem (nepovinne)
+  %supervisor.title.a={},    %titul za jmenem (nepovinne)
+  %Klicova slova, abstrakty, prohlaseni a podekovani je mozne definovat 
+  %bud pomoci nasledujicich parametru nebo pomoci vyhrazenych maker (viz dale)
+  %===========================================================================
+  %Klicova slova
+  %keywords.cs={Klíčová slova v českém jazyce.}, %klicova slova v ceskem ci slovenskem jazyce
+  %keywords.en={Klíčová slova v anglickém jazyce.}, %klicova slova v anglickem jazyce
+  %Abstract
+  %abstract.cs={Výtah (abstrakt) práce v českém jazyce.}, % abstrakt v ceskem ci slovenskem jazyce
+  %abstract.en={Výtah (abstrakt) práce v anglickém jazyce.}, % abstrakt v anglickem jazyce
+  %Prohlaseni
+  %declaration={Prohlašuji, že jsem tuto bakalářskou práci vypracoval samostatně pod vedením pana ...},
+  %Podekovani (nepovinne)
+  %acknowledgment={Zde je možné uvést poděkování vedoucímu práce a těm, kteří poskytli odbornou pomoc.} % nepovinne
+}
+
+%Abstrakt (cesky, slovensky ci anglicky)
+\abstract[cs]{Poslední dobou se objem přenášených dat po síti neustále zvyšuje.
+K~urychlení prohledávání dat je potřeba mít způsob jejich vhodné indexace.
+Tato bakalářská práce se zabývá tímto problémem, konkrétně ukládáním a~vyhledáváním
+dat za účelem zjištění aktivity komunikujících IP adres. Cílem této práce je
+navrhnout a~implementovat systém pro efektivní dlouhodobé ukládání a~vizualizaci aktivity IP adres.
+Aktivitou je myšleno, zda daná adresa generovala provoz v~daném intervalu či ne,
+tedy lze ji reprezentovat jediným bitem, což redukuje objem prohledávaných dat.
+Výsledný systém se skládá z~backendu monitorujícího provoz a~ukládajícího
+ záznamy o~aktivitě do uložiště a~jejich parametry do
+konfiguračního souboru. Dále obsahuje webový server, který na základě požadavků
+uživatele data čte a~vizualizuje ve formě obrázků. Uživatel může specifikovat
+oblast dat, kterou chce zkoumat podrobněji, pomocí interaktivního webového rozhraní.}
+\abstract[en]{The volume of generated network traffic continually grows.
+In order to query data inside the traffic, an effective system of
+indexing data is required. This thesis addresses this problem, specifically
+effectively storing data for a~longer period of time and
+looking up this data representing activity of communicating IP addresses.
+The aim of this thesis is to design and implement a~system that stores
+and visualizes IP address activity. Activity means whether given address
+generated traffic during a~given interval or not. This information has
+a~binary value and can be represented by one bit, which significantly reduces
+volume of queried data. The system consists of backend processing incoming
+flow records and storing address activity to binary storage. Furthermore, it
+contains a~web server which reads stored activity and visualises it
+in the form of an image based on user's request. The user can specify
+an area they wish to examine in more detail in the interactive web interface.}
+
+%Klicova slova (cesky, slovensky ci anglicky)
+\keywords[cs]{monitorování sítě, aktivita IP adres, NEMEA, libtrap, IPFIX, analýza datových toků}
+\keywords[en]{Network Monitoring, IP Address Activity, NEMEA, libtrap, IPFIX, Flow Analysis}
+
+%Prohlaseni (u anglicky psane prace anglicky, u slovensky psane prace slovensky)
+\declaration{Hereby I declare that this bachelor's thesis was prepared
+as an original author’s work under the supervision of Ing. Václav Bartoš.
+The supplementary information was provided by Ing. Tomáš Čejka.
+All the relevant information sources, which were used during preparation
+of this thesis, are properly cited and included in the list of references.}
+
+%Podekovani (nepovinne, nejlepe v jazyce prace)
+\acknowledgment{I wish to express my sincere thanks to my supervisor,
+Ing. Václav Bartoš, for the guidance and encouragement. I am also grateful
+to Ing. Tomáš Čejka, my consultant, for providing me with all the necessary
+facilities, sharing expertise and guidance.}
+
+\extendedabstract{
+V~poslední době je internet běžnou součástí života a~objem
+přenášených dat je čím dál tím větší. Aby se urychlilo vyhledávání dat,
+je potřeba mít způsob, jak data vhodně indexovat. Jedním typem těchto dat jsou
+IP adresy komunikujících zařízení. Tato bakalářská práce se tímto
+problémem zabývá, konkrétně efektivním ukládáním a~vyhledáváním dat za účelem zjištění
+aktivity komunikujících IP adres.
+
+Cílem této bakalářské práce je navrhnout a~implementovat systém pro dlouhodobé ukládání a~vizualizaci
+aktivity IP adres. Aktivitou adresy je myšleno, pokud adresa v daném časovém intervalu
+generovala nějaký provoz či ne. Díky tomu, že má aktivita adres binární hodnotu, lze ji
+efektivně uložit do binárního uložiště jako jediný bit. Takto se velikost uložiště a~objem
+dat prohledaný při vyhledávání efektivně sníží.
+
+Výsledný systém obsahuje backend, který analyzuje příchozí toky a~na konci každého intervalu
+ ukládá záznamy o aktivitě adres patřících do zvoleného rozsahu do binárního uložiště.
+Informace o parametrech uložiště jsou uchovávány ve speciálním konfiguračním souboru.
+Dále obsahuje webový server, který pomocí konfiguračního souboru načte záznamy o~aktivitě
+z~uložiště a~na základě požadavků uživatele ve webovém rozhraní vizualizuje tyto záznamy
+a~pošle je webovému klientovi.
+
+Uživatel si poté pomocí interaktivního webového rozhraní dostane informace o~záznamech a~může
+zvolit konkrétní oblast ze zobrazované aktivity, kterou může zkoumat podrobněji.
+
+V~kapitole \ref{sec:chapter2} jsou popsány principy monitorování a~NEMEA framework,
+ve kterém je implementován backendový modul. Ve
+\ref{sec:chapter3}. kapitole je detailněji popsán design výsledného systému a~použitých
+technologií pro jednotlivé části. \ref{sec:chapter4}. kapitola je věnována popisu implementace
+jednotlivých částí systému, detailnější vysvětlení nejdůležitějších jejich funkcí. Dále je
+zde popis struktury a~určení míry efektivity binárního uložiště. Kapitola \ref{sec:chapter5}
+je věnována popisu užitých technik testování a~jejich výsledků. V~kapitole \ref{sec:chapter6}
+je vyhodnocení výsledků této bakalářské práce a~návrhy na možná další vylepšení tohoto projektu,
+která budou realizována v~budoucnu.}
+
+\begin{document}
+  % Vysazeni titulnich stran
+  % ----------------------------------------------
+  \maketitle
+  % Obsah
+  % ----------------------------------------------
+  \tableofcontents
+  
+  % Seznam obrazku a tabulek (pokud prace obsahuje velke mnozstvi obrazku, tak se to hodi)
+\ifczech
+  \renewcommand\listfigurename{Seznam obrázků}
+\fi
+\ifslovak
+  \renewcommand\listfigurename{Zoznam obrázkov}
+\fi
+
+  % \listoffigures
+\ifczech
+  \renewcommand\listtablename{Seznam tabulek}
+\fi
+\ifslovak
+  \renewcommand\listtablename{Zoznam tabuliek}
+\fi
+
+  % \listoftables 
+
+  % Text prace
+  % ----------------------------------------------
+  \input{obsah} % viz. obsah.tex
+
+  % Pouzita literatura
+  % ----------------------------------------------
+\ifslovak
+  \makeatletter
+  \def\@openbib@code{\addcontentsline{toc}{chapter}{Literatúra}}
+  \makeatother
+  \bibliographystyle{czechiso}
+\else
+  \ifczech
+    \makeatletter
+    \def\@openbib@code{\addcontentsline{toc}{chapter}{Literatura}}
+    \makeatother
+    \bibliographystyle{czechiso}
+  \else 
+    \makeatletter
+    \def\@openbib@code{\addcontentsline{toc}{chapter}{Bibliography}}
+    \makeatother
+    \bibliographystyle{plain}
+  %  \bibliographystyle{alpha}
+  \fi
+\fi
+  \begin{flushleft}
+  \bibliography{literatura} % viz. literatura.bib
+  \end{flushleft}
+
+  % Prilohy
+  % ---------------------------------------------
+  \appendix
+\ifczech
+  \renewcommand{\appendixpagename}{Přílohy}
+  \renewcommand{\appendixtocname}{Přílohy}
+  \renewcommand{\appendixname}{Příloha}
+\fi
+\ifslovak
+  \renewcommand{\appendixpagename}{Prílohy}
+  \renewcommand{\appendixtocname}{Prílohy}
+  \renewcommand{\appendixname}{Príloha}
+\fi
+  \appendixpage
+
+\ifslovak
+  \section*{Zoznam príloh}
+  \addcontentsline{toc}{section}{Zoznam príloh}
+\else
+  \ifczech
+    \section*{Seznam příloh}
+    \addcontentsline{toc}{section}{Seznam příloh}
+  \else
+    \section*{List of Appendices}
+    \addcontentsline{toc}{section}{List of Appendices}
+  \fi
+\fi
+  \startcontents[chapters]
+  \printcontents[chapters]{l}{0}{\setcounter{tocdepth}{2}}
+  \input{prilohy} % viz. prilohy.tex
+\end{document}
