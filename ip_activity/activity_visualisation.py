@@ -401,7 +401,7 @@ class Visualisation_Handler:
           selected - if image is to be in the selected area (boolean)
       '''
 
-      print ("height: " + str(height),"width: " + str(width))
+      #print ("height: " + str(height),"width: " + str(width))
 
       bitmap_height = len(list(bitmap))
       if bitmap_height == 0:
@@ -419,12 +419,6 @@ class Visualisation_Handler:
       else:
          fill_height = (height - bitmap_height) if (height > bitmap_height) else 0
          fill_width = (width - bitmap_width) if (width > bitmap_width) else 0
-
-      print("width: bitmap-" + str(bitmap_width) + " scale-" + str(scaleC) + " fill-" + str(fill_width))
-      print("height: bitmap-" + str(bitmap_height) + " scale-" + str(scaleR) + " fill-" + str(fill_height))
-
-      print ('Creating image', str(height) + 'x' + str(width),
-             'rows: ' + str(scaleR) + ':1', 'cols: ' + str(scaleC) + ':1')
 
       # Save bitmap to buffer as integers
       img_buffer = []
@@ -479,9 +473,6 @@ class Visualisation_Handler:
          return
 
       tmp_bitmap = copy.deepcopy(self.original_bitmap)
-
-      # Do magic...editing here
-      print ('Editing bitmap')
 
       # Save selected IP range
       if sys.version_info[0] == 2:
