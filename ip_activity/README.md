@@ -8,7 +8,7 @@ In order to be able to use the system, the following packages have to be install
 If `yaml-cpp` package is not available, you can build it yourself [here](https://github.com/jbeder/yaml-cpp/releases/tag/release-0.5.3)
 
 ## Server Packages (Python 2.x and/or 3.x)
-- `[beautifulsoup4](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)` Used for HTML file modification.
+- [`beautifulsoup4`](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) Used for HTML file modification.
 - `bitarray`       Uses bit arrays for manipulating binary data from the storage.
 - `ipaddress`      Used for wodking with IP addresses in a convenient way.
 - `pyyaml`         Package for manipulation with YAML files, such as the system's configuration file.
