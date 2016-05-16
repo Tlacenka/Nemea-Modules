@@ -270,7 +270,7 @@ def create_handler(args, handler):
                content_type = 'text/css'
             elif self.path.endswith("favicon.ico"):
                content_type = 'image/x-icon'
-            elif self.path.enswith(".map"):
+            elif self.path.endswith(".map"):
                self.send_response(200)
             else:
                print("Path " + self.path + " was not recognized.", file=sys.stderr)
