@@ -45,3 +45,5 @@ This program implements a web server modifying and visualising stored IP activit
 ### Common parameters
 - `-h/--help`              Print help message for the server created by argparse.
 
+### Usage
+`python[3] http_server.py -f my_bitmap -p 9999`
