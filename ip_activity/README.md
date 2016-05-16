@@ -2,17 +2,17 @@
 In order to be able to use the system, the following packages have to be installed.
 
 ## Backend Packages (C++)
-- `yaml-cpp-0.5.3`        C++ Library for manipulating with YAML files. The package version has to be **0.5.3**.
-- `Boost`                 C++ Boost libraries are used by the **yaml-cpp** package.
+- [`yaml-cpp-0.5.3`](https://github.com/jbeder/yaml-cpp) C++ Library for manipulating with YAML files. The package version has to be **0.5.3**.
+- [`Boost`](http://www.boost.org/) C++ Boost libraries are used by the **yaml-cpp** package.
 
 If `yaml-cpp` package is not available, you can build it yourself [here](https://github.com/jbeder/yaml-cpp/releases/tag/release-0.5.3)
 
 ## Server Packages (Python 2.x and/or 3.x)
 - [`beautifulsoup4`](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) Used for HTML file modification.
-- `bitarray`       Uses bit arrays for manipulating binary data from the storage.
-- `ipaddress`      Used for wodking with IP addresses in a convenient way.
-- `pyyaml`         Package for manipulation with YAML files, such as the system's configuration file.
-- `Pillow`         Fork of `PIL`, used for creating images from bitmaps.
+- [`bitarray`](https://pypi.python.org/pypi/bitarray/)  Uses bit arrays for manipulating binary data from the storage.
+- [`ipaddress`](https://docs.python.org/3/library/ipaddress.html)  Used for wodking with IP addresses in a convenient way.
+- [`pyyaml`](http://pyyaml.org/wiki/PyYAMLDocumentation)  Package for manipulation with YAML files, such as the system's configuration file.
+- [`Pillow`](https://pillow.readthedocs.io/en/3.2.x/) Fork of `PIL`, used for creating images from bitmaps.
 
 You can install these packages automatically by executing the `install_dependencies.sh` script.
 
