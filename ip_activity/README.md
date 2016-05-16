@@ -9,13 +9,13 @@ This module scans traffic and stores IP activity to the dedicated bitmap.
 
 ## Parameters
 ### Module specific parameters
-- `-c/--config_file <name>` Sets name/prefix for configuration file ("config" by default).
-- `-d/--directory <name>`   Sets directory for saving bitmaps and configuration (CWD by default)
-- `-f/--filename <name>`    Sets name/prefix for bitmap files ("bitmap" by default).
-- `-g/--granularity N`      Sets network mask (granularity) (/32 for IPv4 by default).
-- `-r/--range <range>`      Sets first and last considered IP address as a string "<first>,<last>" (the whole address space by default).
-- `-t/--time_interval N`    Sets time unit in seconds (300 seconds by default).
-- `-w/--time_window N`      Sets time window of stored data (100 intervals by default).
+- `-c/--config_file <name>`     Sets name/prefix for configuration file ("config" by default).
+- `-d/--directory <name>`       Sets directory for saving bitmaps and configuration (CWD by default)
+- `-f/--filename <name>`        Sets name/prefix for bitmap files ("bitmap" by default).
+- `-g/--granularity N`          Sets network mask (granularity) (/32 for IPv4 by default).
+- `-r/--range <first>,<last>`   Sets first and last considered IP address as a string (the whole IPv4 address space by default).
+- `-t/--time_interval N`        Sets time unit in seconds (300 seconds by default).
+- `-w/--time_window N`          Sets time window of stored data (100 intervals by default).
 
 ### Common TRAP parameters
 - `-h [trap,1]`      Print help message for this module / for libtrap specific parameters.
