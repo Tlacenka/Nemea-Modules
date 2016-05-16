@@ -493,7 +493,7 @@ $(document).ready(function() {
    
          var int1 = down_int;
          var int2 = curr_interval;
-         console.log("before:" + down_int + " " + curr_interval);
+         console.log("before:" + down_int + " and " + curr_interval);
 
          // Handle undefined
          // If both intervals are undefined, set them to the whole range
@@ -515,7 +515,7 @@ $(document).ready(function() {
              $('.bitmap_options input.first_int').val(int2);
             $('.bitmap_options input.last_int').val(int1);
          }
-         console.log("after:" + down_int + " " + curr_interval);
+         console.log("after:" + down_int + " and " + curr_interval);
 
          mouse_down = false;
          $('#rectangle').hide();
@@ -550,7 +550,7 @@ $(document).ready(function() {
             // Get rid of grouped ::, normalize to length of 4
             for (var j = 0; j < len; j++) {
                if (tmp[j] != '') {
-                  tmp[j] = ('0000' + tmp[i]).substr(-4);
+                  tmp[j] = ('0000' + tmp[j]).substr(-4);
                } else {
                   tmp[j] = '0000';
                }
