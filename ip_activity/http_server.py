@@ -387,8 +387,6 @@ def main():
    # Set SIGTERM handler
    signal.signal(signal.SIGTERM, sigterm_handler)
 
-   print("Starting server")
-
    # Serve forever
    try:
       server.serve_forever()
