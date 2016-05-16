@@ -43,10 +43,11 @@ TEST14=("Testing parameter -r with one IPv6" "$DIR/ip_activity -i t:12345 -r faf
 TEST15=("Testing parameter -r with one IP + comma" "$DIR/ip_activity -i t:12345 -r ,123.0.4.9" 1)
 TEST16=("Testing parameter -r with invalid IPv4" "$DIR/ip_activity -i t:12345 -r g.0.0.0,258.0.4.9" 1)
 TEST17=("Testing parameter -r with invalid IPv6" "$DIR/ip_activity -i t:12345 -r ffaa::,haha::" 1)
+TEST18=("Testing parameter -d with invalid path" "$DIR/ip_activity -i t:12345 -d some/random/directory" 1)
 
 TESTS=("${TEST01[@]}" "${TEST02[@]}" "${TEST03[@]}" "${TEST04[@]}" "${TEST05[@]}" "${TEST06[@]}")
 TESTS+=("${TEST07[@]}" "${TEST08[@]}" "${TEST09[@]}" "${TEST10[@]}" "${TEST11[@]}" "${TEST12[@]}")
-TESTS+=("${TEST13[@]}" "${TEST14[@]}" "${TEST15[@]}" "${TEST16[@]}" "${TEST17[@]}")
+TESTS+=("${TEST13[@]}" "${TEST14[@]}" "${TEST15[@]}" "${TEST16[@]}" "${TEST17[@]}" "${TEST18[@]}")
 
 TESTS_NR=`expr ${#TESTS[@]} / $ELEMENTS`
 
@@ -64,12 +65,11 @@ function run_test() {
        printf "${green} PASS${normal}\n"
    else
       printf "${red} FAIL (expected ${3}) ${normal}\n"
-
-      # Print error if verbose
-      if [ "$VERBOSE" = true ]
-      then
-         printf "${yellow}`cat $DIR/$ERR_FILE` ${normal}\n"
-      fi
+   fi
+   # Print error message if verbose
+   if [ "$VERBOSE" = true ]
+   then
+      printf "${yellow}`cat $DIR/$ERR_FILE` ${normal}\n"
    fi
 
 }

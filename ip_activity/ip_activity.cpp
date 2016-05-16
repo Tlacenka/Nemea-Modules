@@ -54,6 +54,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include <bitset>
 #include <ctime>
@@ -310,6 +311,14 @@ int main(int argc, char **argv)
        ((ip_version == 6) && (granularity > IPV6_BITS))) {
       fprintf(stderr, "Error: Granularity - IPv%d netmask value cannot be greater than %d.\n",
               ip_version, ((ip_version == 4) ? IPV4_BITS : IPV6_BITS));
+      return 1;
+   }
+
+
+   // Check directory
+   struct stat st;
+   if (stat(directory.c_str(), &st) != 0) {
+      fprintf(stderr, "Error: Directory does not exist.\n");
       return 1;
    }
 
