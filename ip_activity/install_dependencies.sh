@@ -36,7 +36,7 @@ elif [ -f /etc/redhat-release ]; then
     sudo pip install bitarray
     sudo pip install ipaddress
     sudo pip install pyyaml
-   sudo pip install Pillow
+    sudo pip install Pillow
 
     echo "Installing Python 3 packages"
     sudo yum install python34-setuptools
